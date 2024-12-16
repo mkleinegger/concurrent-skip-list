@@ -1,0 +1,27 @@
+\documentclass{standalone}
+
+\usepackage{pgfplots}
+\usepgfplotslibrary{statistics}
+
+\begin{document}
+  \begin{tikzpicture}
+    \begin{axis}[title={Parallel sum},              % Title of the graph
+                 xtick={1,2,4,8,16,32,64,128,256},  % The ticks on the x-axis
+                 xlabel={number of threads},        % Label of the x-axis
+                 ylabel={time in [ms]},             % Label of the y-axis
+                 legend style={
+                   at={(1.05,0.95)},                % Position of the legend anchor
+                   anchor=north west                % The legend anchor
+                 }]
+
+      % Each graph is added via \addplot and a .data file, and
+      % add a legend entry for the previous graph.
+      \addplot table {\DATAPATH/avg/smallbench_10.data};
+      \addlegendentry{10 lends}
+
+      \addplot table {\DATAPATH/avg/smallbench_100.data};
+      \addlegendentry{30 lends}
+
+    \end{axis}
+  \end{tikzpicture}
+\end{document}

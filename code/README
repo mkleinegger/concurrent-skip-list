@@ -1,0 +1,55 @@
+Concurrent Library
+-------------------------------
+
+Sequential implementation, to check:
+
+
+  make clean
+
+Then with makefile we build library skiplist.so
+  
+  make all
+
+To run smple correctness tests;
+
+  
+  make run-test
+
+To run small bench (still errors)
+
+  
+  make small-bench
+
+Ideally make run-benchmark worksas well but for now it doesn't..
+
+
+//handout info 
+
+This example benchmarks a concurrent library (the one for books).
+
+  make small-bench
+
+Runs a small benchmark that takes approximately 1 minute
+to finish. The results are stored time-stamped in data/.
+
+  make small-plot
+
+Produces two plots of the small benchmark data. It
+automatically chooses the latest timestamped run in data/.
+
+You can use run_nebula.sh to automatically copy your .zip
+archive to nebula and run some make target there. The syntax is
+
+  run_nebula.sh [project.zip] [Makefile target]
+
+The gathered data is then automatically scp'd back into your
+data/ folder.
+
+Prerequisites
+-----------------------------
+
+What is needed:
+
+* C compiler
+* GNU Make
+* Python version at least 3.6

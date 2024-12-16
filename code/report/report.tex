@@ -1,0 +1,24 @@
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{cleveref}
+
+\begin{document}
+
+\title{Project in Advanced Multiprocessor Programming}
+\author{Hacker Man - 12345678}
+\maketitle
+
+\section{Introduction}
+
+Here goes your report with plots as beautiful as \cref{fig:example_plot}.
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics{../plots/avg_plot.pdf}
+  \caption{A sample plot showcasing the runtime of a distributed library under
+  increasing number of threads. Clearly, it does not scale very well.}
+  \label{fig:example_plot}
+\end{figure}
+
+\end{document}
