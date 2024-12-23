@@ -65,3 +65,9 @@ clean:
 	$(RM) -f $(NAME) $(NAME).so
 
 .PHONY: clean report
+
+custom-bench: 
+	@echo "Running custom-bench ..."
+	@gcc-12 -O2 -fPIC -shared -fopenmp ./src/skiplistseq.c ./src/library.c -o library.so
+	@python benchmark.py
+

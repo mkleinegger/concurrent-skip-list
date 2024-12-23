@@ -17,7 +17,8 @@ struct bench_result
     unsigned long long total_deletes;
     unsigned long long successful_deletes;
     unsigned long long total_contains;
-    unsigned long long successful_contains;};
+    unsigned long long successful_contains;
+};
 
 struct bench_result run_benchmark(
     skiplist *list,
@@ -31,11 +32,13 @@ struct bench_result run_benchmark(
     int seed,
     int *correctness)
 {
-    struct bench_result counters = {0, 0, 0, 0, 0, 0, 0};
+    struct bench_result counters = {0};
     srand(seed);
 
     long key = 0;
     double tic, toc;
+
+#pragma omp barrier
     tic = toc = omp_get_wtime();
     while (toc - tic < runtime_in_sec)
     {
@@ -45,7 +48,11 @@ struct bench_result run_benchmark(
             key = rand() % end_range + start_range;
             break;
         case 1:
-            key++;
+            key = (key + 1) % end_range + start_range;
+            break;
+        case 2:
+            // TODO: unique random numbers
+            break;
         default:
             break;
         }
@@ -113,7 +120,7 @@ struct bench_result small_bench(
     int selection_strategy,
     int seed)
 {
-    struct bench_result result;
+    struct bench_result result[num_of_threads];
     memset(&result, 0, sizeof(result));
 
     int *correctness = malloc(100000 * sizeof(int));
@@ -122,21 +129,56 @@ struct bench_result small_bench(
     skiplist *mylist = malloc(sizeof(skiplist));
     init(mylist); // your skiplist init
 
-    result = run_benchmark(mylist, runtime_in_sec, i, d, c, start_range, end_range, selection_strategy, seed, correctness);
-    
-    clean(mylist);
+    int start = start_range;
+    int end = end_range;
+    int step = (end - start) / num_of_threads;
 
-#ifdef VERBOSE
+    // TODO: add pre-fill items
+
+    omp_set_num_threads(num_of_threads);
+    {
+#pragma omp parallel
+        for (int t = 0; t < num_of_threads; t++)
+        {
+            if (disjoint_range == 1)
+            {
+                start = t * step;
+                end = (t + 1) * step;
+            }
+            result[t] = run_benchmark(mylist, runtime_in_sec, i, d, c, start, end, selection_strategy, seed + t, correctness);
+        }
+    }
+
+    clean(mylist);
+    free(mylist);
+    free(correctness);
+
+    // Sum up the results
+    struct bench_result result_sum = {0, 0, 0, 0, 0, 0, 0};
+    for (int i = 0; i < num_of_threads; i++)
+    {
+        result_sum.time += result[i].time;
+        result_sum.total_inserts += result[i].total_inserts;
+        result_sum.successful_inserts += result[i].successful_inserts;
+        result_sum.total_deletes += result[i].total_deletes;
+        result_sum.successful_deletes += result[i].successful_deletes;
+        result_sum.total_contains += result[i].total_contains;
+        result_sum.successful_contains += result[i].successful_contains;
+    }
+    result_sum.time /= num_of_threads;
+
     // Print or return the result
-    printf("\nInserting:  %llu/%llu\n",
-           result.successful_inserts, result.total_inserts);
+#ifdef VERBOSE
+    printf("\nTime: %f\n", result_sum.time);
+    printf("Inserting:  %llu/%llu\n",
+           result_sum.successful_inserts, result_sum.total_inserts);
     printf("Deleting:   %llu/%llu\n",
-           result.successful_deletes, result.total_deletes);
+           result_sum.successful_deletes, result_sum.total_deletes);
     printf("Containing: %llu/%llu\n",
-           result.successful_contains, result.total_contains);
+           result_sum.successful_contains, result_sum.total_contains);
 #endif
 
-    return result;
+    return result_sum;
 }
 
 /* main is not relevant for benchmark.py but necessary when run alone for
@@ -146,4 +188,5 @@ int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
+    small_bench(1, 30, 10, 10, 80, 0, 100000, 0, 0, 42);
 }

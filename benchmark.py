@@ -4,10 +4,6 @@ import datetime
 
 
 class cBenchResult(ctypes.Structure):
-    """
-    This has to match the returned struct in library.c
-    """
-
     _fields_ = [
         ("time", ctypes.c_float),
         ("total_inserts", ctypes.c_ulonglong),
@@ -17,6 +13,7 @@ class cBenchResult(ctypes.Structure):
         ("total_contains", ctypes.c_ulonglong),
         ("successful_contains", ctypes.c_ulonglong),
     ]
+
 
 
 class Benchmark:
@@ -151,22 +148,22 @@ def benchmark():
 
     num_threads = [1]  # ,2,4,8,16]#,32,64,128,256]
 
-    smallbench = Benchmark(
+    smallbench_seq = Benchmark(
         bench_function=binary.small_bench,
         num_of_threads=num_threads,
         base_range=(0, 100000),
-        runtime_in_sec=1,
+        runtime_in_sec=5,
         operations_mix=(10, 10, 80),
         disjoint_range=False,
-        selection_strategy=0,
+        selection_strategy=1,
         seed=42,
-        repetitions_per_point=10,
+        repetitions_per_point=1,
         basedir=basedir,
-        name="smallbench_10",
+        name="smallbench",
     )
 
-    smallbench.run()
-    smallbench.write_avg_data()
+    smallbench_seq.run()
+    # smallbench.write_avg_data()
 
 
 if __name__ == "__main__":
