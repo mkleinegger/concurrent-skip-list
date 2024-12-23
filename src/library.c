@@ -2,128 +2,126 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
-#include <stdbool.h>
-#include <omp.h>
+#include "omp.h"
+
+#include "skiplist.h"
 
 /* These structs should to match the definition in benchmark.py */
-struct counters {
-    int failed_turns;
-    int successful_lends;
+struct counters
+{
+    unsigned long long total_inserts;
+    unsigned long long successful_inserts;
+    unsigned long long total_deletes;
+    unsigned long long successful_deletes;
+    unsigned long long total_contains;
+    unsigned long long successful_contains;
 };
-struct bench_result {
+struct bench_result
+{
     float time;
-    struct counters reduced_counters;
+    struct counters counters;
 };
 
-/* This is our example shared structure, a library for threads. Books can be
- * lent and returned via the four respective functions.
- */
-struct one_thread_library {
-    int art_of_multiprocessor_programming;
-    int the_c_programming_language;
-} library;
+struct bench_result run_benchmark(
+    skiplist *list,
+    int runtime_in_sec,
+    float i,
+    float d,
+    float c,
+    int start_range,
+    int end_range,
+    int seed,
+    int *correctness)
+{
+    struct bench_result data = {0}; // everything set to zero
+    data.time = 0.0f;
+    srand(seed);
 
-bool lend_herlihyshavit_luchangco_spear(struct one_thread_library* l) {
-    if (l->art_of_multiprocessor_programming > 0) {
-        l->art_of_multiprocessor_programming--;
-        return true;
-    }
-    return false;
-}
+    double tic = omp_get_wtime();
+    double toc = omp_get_wtime();
+    while (toc - tic < runtime_in_sec)
+    {
+        // pick an op: (insert, remove, contains)
+        int r = rand() % 100;       // 0..99
+        long key = rand() % 100000; // pick some key range, e.g. 0..9999
 
-void return_herlihyshavit_luchangco_spear(struct one_thread_library* l) {
-    l->art_of_multiprocessor_programming++;
-}
-
-bool lend_kernigham_ritchie(struct one_thread_library* l) {
-    if (l->the_c_programming_language > 0) {
-        l->the_c_programming_language--;
-        return true;
-    }
-    return false;
-}
-
-void return_kernigham_ritchie(struct one_thread_library* l) {
-    l->the_c_programming_language++;
-}
-
-struct counters random_bench1(struct one_thread_library* l, int times, int seed) {
-    int tid = omp_get_thread_num();
-    printf("Thread %d started.\n", tid);
-    // Barrier to force OMP to start all threads at the same time
-    #pragma omp barrier
-
-    struct counters data = {.failed_turns = 0,
-                            .successful_lends = 0};
-
-    int herlihy_shavit_luchangco_spear = 0;
-    int kernigham_ritchie = 0;
-
-    for (int i = 0; i < times;) {
-        // Generate a random number
-        uint32_t choice = arc4random();
-
-        // We can only have exclusive access to the library
-        #pragma omp critical
+        if (r < 20)
         {
-            if (choice > (UINT32_MAX / 2)) { // Random branching condition
-                if (lend_herlihyshavit_luchangco_spear(l)) {
-                    herlihy_shavit_luchangco_spear++;
-                    data.successful_lends++;
-                } else if (herlihy_shavit_luchangco_spear > 0) {
-                    return_herlihyshavit_luchangco_spear(l);
-                    herlihy_shavit_luchangco_spear--;
-                    i++;
-                } else {
-                    data.failed_turns++;
-                }
-            } else {
-                if (lend_kernigham_ritchie(l)) {
-                    kernigham_ritchie++;
-                    data.successful_lends++;
-                } else if (kernigham_ritchie > 0) {
-                    return_kernigham_ritchie(l);
-                    kernigham_ritchie--;
-                    i++;
-                } else {
-                    data.failed_turns++;
+            if (correctness[key] == 0)
+            {
+
+                // insert
+                data.counters.total_inserts++;
+                int success = add(list, key, NULL);
+                if (success)
+                {
+                    correctness[key]++;
+                    data.counters.successful_inserts++;
                 }
             }
         }
+        else if (r < 40)
+        {
+            // delete
+            data.counters.total_deletes++;
+            int success = rem(list, key);
+            if (success == correctness[key])
+            {
+                data.counters.successful_deletes++;
+            }
+            if (success)
+            {
+                correctness[key] = 0;
+            }
+        }
+        else
+        {
+            // contains
+            data.counters.total_contains++;
+            int success = con(list, key);
+            if (success == correctness[key])
+                data.counters.successful_contains++;
+        }
+        toc = omp_get_wtime();
     }
+    data.time = (float)(toc - tic);
     return data;
 }
 
-struct bench_result small_bench(int t, int len) {
-    struct bench_result result = {.reduced_counters = {.failed_turns = 0, .successful_lends = 0}};
-    struct counters thread_data[t];
-    double tic, toc;
+struct bench_result small_bench(
+    int num_of_threads,
+    int repetitions,
+    int runtime_in_sec,
+    float i,
+    float d,
+    float c,
+    int start_range,
+    int end_range,
+    int disjoint_range,
+    int selection_strategy,
+    int seed)
+{
+    struct bench_result result;
+    memset(&result.counters, 0, sizeof(result.counters));
 
-    library.art_of_multiprocessor_programming = 20;
-    library.the_c_programming_language = 20;
+    int *correctness = malloc(100000 * sizeof(int));
+    memset(correctness, 0, sizeof(correctness));
 
-    omp_set_num_threads(t);
-    tic = omp_get_wtime();
-    {
-        #pragma omp parallel for
-        for (int i = 0; i < t; i++) {
-            thread_data[i] = random_bench1(&library, len, i);
-        }
-    }
-    toc = omp_get_wtime();
+    skiplist *mylist = malloc(sizeof(skiplist));
+    init(mylist); // your skiplist init
 
-    for (int i = 0; i < t; i++) {
-        result.reduced_counters.successful_lends += thread_data[i].successful_lends;
-        result.reduced_counters.failed_turns += thread_data[i].failed_turns;
-    }
+    run_benchmark(mylist, 1, 0.5, 0.2, 0.3, 0, 100000, 0, correctness);
 
-    result.time = (toc - tic);
-    printf("LIBRARY: lending %d books on %d threads took: %fs\n",
-           len, t, toc - tic);
-    printf("  with %d failed turns and %d successful lends: %f lends/s throughput\n",
-           result.reduced_counters.failed_turns,
-           result.reduced_counters.successful_lends,
-           result.reduced_counters.successful_lends / result.time);
+    clean(mylist); // optional: free memory
+
+    // Print or return the result
+    printf("Thread=%d, times=%d, took=%.6f s\n", 0, 1, result.time);
+    printf("  Inserting:  %llu/%llu\n",
+           result.counters.successful_inserts, result.counters.total_inserts);
+    printf("  Deleting:   %llu/%llu\n",
+           result.counters.successful_deletes, result.counters.total_deletes);
+    printf("  Containing: %llu/%llu\n",
+           result.counters.successful_contains, result.counters.total_contains);
 
     return result;
 }
@@ -131,12 +129,8 @@ struct bench_result small_bench(int t, int len) {
 /* main is not relevant for benchmark.py but necessary when run alone for
  * testing.
  */
-int main(int argc, char* argv[]) {
-    (void) argc;
-    (void) argv;
-    small_bench(1, 10);
-    small_bench(2, 10);
-    small_bench(4, 10);
-    small_bench(8, 10);
-    small_bench(16, 10);
+int main(int argc, char *argv[])
+{
+    (void)argc;
+    (void)argv;
 }

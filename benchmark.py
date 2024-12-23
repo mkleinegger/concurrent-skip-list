@@ -6,9 +6,13 @@ class cBenchCounters(ctypes.Structure):
     '''
     This has to match the returned struct in library.c
     '''
-    _fields_ = [ ("failed_turns", ctypes.c_int),
-                 ("successful_lends", ctypes.c_int) ]
-
+    _fields_ = [ ("total_inserts", ctypes.c_ulonglong),
+                 ("successful_inserts", ctypes.c_ulonglong),
+                 ("total_deletes", ctypes.c_ulonglong),
+                 ("successful_deletes", ctypes.c_ulonglong),
+                 ("total_contains", ctypes.c_ulonglong),
+                 ("successful_contains", ctypes.c_ulonglong) ]
+    
 class cBenchResult(ctypes.Structure):
     '''
     This has to match the returned struct in library.c
@@ -79,22 +83,22 @@ def benchmark():
 
     # The number of threads. This is the x-axis in the benchmark, i.e., the
     # parameter that is 'sweeped' over.
-    num_threads = [1,2,4,8,16]#,32,64,128,256]
+    num_threads = [3] #,2,4,8,16]#,32,64,128,256]
 
     # Parameters for the benchmark are passed in a tuple, here (1000,). To pass
     # just one parameter, we cannot write (1000) because that would not parse
     # as a tuple, instead python understands a trailing comma as a tuple with
     # just one entry.
-    smallbench_10 = Benchmark(binary.small_bench, (10,), 3,
-                              num_threads, basedir, "smallbench_10")
-
-    smallbench_100 = Benchmark(binary.small_bench, (100,), 3,
-                               num_threads, basedir, "smallbench_100")
+    smallbench_10 = Benchmark(
+        bench_function=binary.small_bench, 
+        xrange= num_threads, 
+        parameters=(100000,),
+        repetitions_per_point=3,
+        basedir=basedir, 
+        name="smallbench_10")
 
     smallbench_10.run()
     smallbench_10.write_avg_data()
-    smallbench_100.run()
-    smallbench_100.write_avg_data()
 
 if __name__ == "__main__":
     benchmark()
