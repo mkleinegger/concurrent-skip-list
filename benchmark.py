@@ -6,12 +6,13 @@ import datetime
 class cBenchResult(ctypes.Structure):
     _fields_ = [
         ("time", ctypes.c_float),
-        ("total_inserts", ctypes.c_ulonglong),
-        ("successful_inserts", ctypes.c_ulonglong),
-        ("total_deletes", ctypes.c_ulonglong),
-        ("successful_deletes", ctypes.c_ulonglong),
-        ("total_contains", ctypes.c_ulonglong),
-        ("successful_contains", ctypes.c_ulonglong),
+        ("total_inserts", ctypes.c_longlong),
+        ("successful_inserts", ctypes.c_longlong),
+        ("total_deletes", ctypes.c_longlong),
+        ("successful_deletes", ctypes.c_longlong),
+        ("total_contains", ctypes.c_longlong),
+        ("successful_contains", ctypes.c_longlong),
+        ("total_operations", ctypes.c_longlong),
     ]
 
 
@@ -74,6 +75,7 @@ class Benchmark:
                     ctypes.c_int(self.base_range[1]),
                     ctypes.c_int(1 if self.disjoint_range else 0),
                     ctypes.c_int(self.selection_strategy),
+                    ctypes.c_int(0),
                     ctypes.c_int(self.seed),
                 )
 
@@ -146,14 +148,15 @@ def benchmark():
     # Set the result type for each benchmark function
     binary.small_bench.restype = cBenchResult
 
-    num_threads = [1]  # ,2,4,8,16]#,32,64,128,256]
+    # num_threads = [1, 2, 4, 8, 10, 20, 40, 64]
+    num_threads = [1]
 
-    smallbench_seq = Benchmark(
+    smallbench = Benchmark(
         bench_function=binary.small_bench,
         num_of_threads=num_threads,
         base_range=(0, 100000),
-        runtime_in_sec=5,
-        operations_mix=(10, 10, 80),
+        runtime_in_sec=1,
+        operations_mix=(100, 0, 0),
         disjoint_range=False,
         selection_strategy=1,
         seed=42,
@@ -162,7 +165,7 @@ def benchmark():
         name="smallbench",
     )
 
-    smallbench_seq.run()
+    smallbench.run()
     # smallbench.write_avg_data()
 
 
