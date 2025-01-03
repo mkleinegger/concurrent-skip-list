@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include "skiplist.h"
+
+// Define a global lock
+omp_lock_t lock;
 
 int randomLevel(double p, int max_level)
 {
@@ -16,6 +20,7 @@ int randomLevel(double p, int max_level)
 
 int add(skiplist *list, long key, void *value)
 {
+    omp_set_lock(&lock); // Acquire lock
     skiplist_node *update[MAX_LEVEL];
     skiplist_node *node = list->header;
 
@@ -30,6 +35,7 @@ int add(skiplist *list, long key, void *value)
 
     if (node->next[0] != NULL && node->next[0]->key == key)
     {
+        omp_unset_lock(&lock);
         return 0;
     }
 
@@ -44,6 +50,10 @@ int add(skiplist *list, long key, void *value)
     }
 
     skiplist_node *new_node = malloc(sizeof(skiplist_node));
+    if (!new_node) {
+        omp_unset_lock(&lock);
+        return -1;
+    }
     new_node->key = key;
     new_node->value = value;
 
@@ -55,11 +65,13 @@ int add(skiplist *list, long key, void *value)
 
     INC(list->adds);
 
-    return 1; // Return 1 to indicate success
+    omp_unset_lock(&lock); // Release lock
+    return 1;              // Return 1 to indicate success
 }
 
 int con(skiplist *list, long key)
 {
+    omp_set_lock(&lock); // Acquire lock
     int success = 0;
     skiplist_node *node = list->header;
     for (int i = list->max_level; i >= 0; i--)
@@ -70,17 +82,18 @@ int con(skiplist *list, long key)
         }
     }
 
-    INC(list->cons);
-
     if (node->next[0] != NULL && node->next[0]->key == key)
     {
+        INC(list->cons);
         success = 1;
     }
+    omp_unset_lock(&lock); // Release lock
     return success;
 }
 
 int rem(skiplist *list, long key)
 {
+    omp_set_lock(&lock); // Acquire lock
     skiplist_node *update[MAX_LEVEL];
     skiplist_node *node = list->header;
 
@@ -105,15 +118,17 @@ int rem(skiplist *list, long key)
             update[i]->next[i] = node->next[i];
         }
 
-        INC(list->rems);
         free(node);
+        INC(list->rems);
 
         while (list->max_level > 0 && list->header->next[list->max_level] == NULL)
         {
             list->max_level--;
         }
+        omp_unset_lock(&lock); // Release lock
         return 1;
     }
+    omp_unset_lock(&lock); // Release lock
     return 0;
 }
 
@@ -122,14 +137,14 @@ void init(skiplist *list)
     list->header = malloc(sizeof(skiplist_node));
     list->header->key = -1;
     list->header->value = NULL;
-
+    list->max_level = 0;
 
     for (int i = 0; i < MAX_LEVEL; i++)
     {
         list->header->next[i] = NULL;
     }
 
-    list->max_level = 0;
+    omp_init_lock(&lock);
 }
 
 void clean(skiplist *list)
@@ -143,4 +158,11 @@ void clean(skiplist *list)
     }
 
     free(list->header);
+    omp_destroy_lock(&lock);
+
+#ifdef COUNTERS
+    list->adds = 0;
+    list->cons = 0;
+    list->rems = 0;
+#endif
 }
