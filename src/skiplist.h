@@ -13,10 +13,19 @@
 #define INC(_c)
 #endif
 
+#define FINE_LOCKING
+
 typedef struct _node {
     long key;
     void *value;
     struct _node *next[MAX_LEVEL];
+
+    #ifdef FINE_LOCKING
+    omp_lock_t lock;
+    volatile int marked;
+    volatile int fullyLinked;
+    int top_level;
+    #endif
 } skiplist_node;
 
 typedef struct _list {

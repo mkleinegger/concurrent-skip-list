@@ -3,195 +3,272 @@
 #include <limits.h>
 #include <omp.h>
 #include <time.h>
-#include <unistd.h> // For usleep (optional)
 
-// Define maximum level for the skip list
-#define MAX_LEVEL 16
-// Probability for random level generation
-#define P 0.5
+#include "skiplist.h"
 
-// Node structure
-typedef struct Node {
-    long key;
-    void *value;
-    struct Node **next;    // Array of next pointers for each level
-    volatile int marked;            // 0 = not marked, 1 = marked for deletion
-    volatile int fullyLinked;       // 0 = not fully linked, 1 = fully linked
-    omp_lock_t lock;       // Lock for this node
-} Node;
+int find(skiplist *list, long key, skiplist_node **preds, skiplist_node **succs);
 
-// SkipList structure
-typedef struct skiplist {
-    Node *head;
-    Node *tail;
-    int maxLevel;
-} skiplist;
+void init(skiplist *list)
+{
+    list->max_level = MAX_LEVEL;
 
-// Function Prototypes
-void init(skiplist* list);
-void clean(skiplist *list);
-int add(skiplist *list, long key, void *value);
-int rem(skiplist *list, long key);
-int con(skiplist *list, long key);
+    list->header = (skiplist_node *)malloc(sizeof(skiplist_node));
+    list->header->key = INT_MIN;
+    list->header->value = NULL;
+    list->header->marked = 0;
+    list->header->fullyLinked = 1;
+    list->header->top_level = MAX_LEVEL - 1;
+    omp_init_lock(&list->header->lock);
 
-// Helper Function Prototypes
-int find(skiplist *list, long key, Node **preds, Node **succs);
-
-// Function to create a new node
-Node* createNode(long key, void *value, int level) {
-    Node *node = (Node*) malloc(sizeof(Node));
-    if (node == NULL) {
-        perror("Failed to allocate memory for new node");
-        exit(EXIT_FAILURE);
+    for (int i = 0; i < MAX_LEVEL; i++)
+    {
+        list->header->next[i] = NULL;
     }
-    node->key = key;
-    node->value = value;
-    node->next = (Node**) malloc(sizeof(Node*) * (level + 1));
-    if (node->next == NULL) {
-        perror("Failed to allocate memory for node next pointers");
-        free(node);
-        exit(EXIT_FAILURE);
-    }
-    for(int i = 0; i <= level; i++) {
-        node->next[i] = NULL;
-    }
-    node->marked = 0;        // Initialize as not marked
-    node->fullyLinked = 0;   // Initialize as not fully linked
-    omp_init_lock(&node->lock); // Initialize the node's lock
-    return node;
 }
 
+void clean(skiplist *list)
+{
+    if (!list)
+        return;
 
-// Initialize the skip list
-void init(skiplist* list) {
-    list->maxLevel = MAX_LEVEL;
-    
-    // Create head and tail sentinel nodes
-    list->head = createNode(INT_MIN, NULL, list->maxLevel);
-    list->tail = createNode(INT_MAX, NULL, list->maxLevel);
-    
-    // Initialize next pointers of head to point to tail
-    for(int i = 0; i <= list->maxLevel; i++) {
-        list->head->next[i] = list->tail;
-    }
+    skiplist_node *node = list->header;
 
-}
-
-// Destroy the skip list and free memory
-void clean(skiplist *list) {
-    if (list == NULL) return;
-    Node *node = list->head;
-    while(node != NULL) {
-        Node *temp = node;
+    while (node != NULL)
+    {
+        skiplist_node *temp = node;
         node = node->next[0];
-        omp_destroy_lock(&temp->lock); // Destroy the node's lock
-        free(temp->next);
-        free(temp);
+        if (temp != NULL)
+        {
+            omp_destroy_lock(&temp->lock);
+            free(temp);
+        }
     }
 
+    list->header = NULL;
+    list->max_level = 0;
 }
 
-// Thread-safe random level generator using rand_r
-int randomLevel(unsigned int *seed) {
+int randomLevel(unsigned int seed, double p, int max_level)
+{
     int level = 0;
-    while (((double) rand() / RAND_MAX) < P && level < MAX_LEVEL)
+    while (((double)rand_r(&seed) / (double)RAND_MAX) < p && level < max_level)
+    {
+        // while ((rand() / (double) RAND_MAX) < p && level < max_level){
         level++;
+    }
     return level;
 }
 
-// Find function to locate predecessors and successors
-int find(skiplist *list, long key, Node **preds, Node **succs) {
+int find(skiplist *list, long key, skiplist_node **preds, skiplist_node **succs)
+{
     int lFound = -1;
-    Node *pred = list->head;
-    for(int level = list->maxLevel; level >= 0; level--) {
-        Node *curr = pred->next[level];
-        while(curr->key < key) {
+    skiplist_node *pred = list->header;
+    for (int level = MAX_LEVEL - 1; level >= 0; level--)
+    {
+        skiplist_node *curr = pred->next[level];
+        while (curr != NULL && curr->key < key)
+        {
             pred = curr;
             curr = pred->next[level];
         }
-        preds[level] = pred;
-        succs[level] = curr;
-        if(lFound == -1 && curr->key == key) {
+        if (lFound == -1 && curr != NULL && curr->key == key)
+        {
             lFound = level;
         }
+        preds[level] = pred;
+        succs[level] = curr;
     }
     return lFound;
 }
 
-//
-int add(skiplist *list, long key, void *value) {
-    // Initialize thread-local seed for rand_r
-    unsigned int seed = (unsigned int)(time(NULL)) ^ omp_get_thread_num();
-    
-    int topLevel = randomLevel(&seed);
-    Node *preds[MAX_LEVEL + 1];
-    Node *succs[MAX_LEVEL + 1];
-    
-    while (1) {
+int add(skiplist *list, long key, void *value)
+{
+    unsigned int seed = time(NULL) ^ omp_get_thread_num();
+    int topLevel = randomLevel(seed, P, MAX_LEVEL - 1);
+    skiplist_node *preds[MAX_LEVEL];
+    skiplist_node *succs[MAX_LEVEL];
+
+    while (1)
+    {
         int lFound = find(list, key, preds, succs);
-        if(lFound != -1) {
-            Node *nodeFound = succs[lFound];
-            //omp_set_lock(&nodeFound->lock);
-            if(!nodeFound->marked) { // if marked == 0
-                // Wait until the node is fully linked
-                while(!nodeFound->fullyLinked) {
-                    //omp_unset_lock(&nodeFound->lock);
-                    //omp_set_lock(&nodeFound->lock);
+        if (lFound != -1)
+        {
+            skiplist_node *nodeFound = succs[lFound];
+            if (!nodeFound->marked)
+            {
+                while (!nodeFound->fullyLinked)
+                {
                 }
-                //omp_unset_lock(&nodeFound->lock);
-                return 0; // Key already in the list
+                return 0;
             }
-            //omp_unset_lock(&nodeFound->lock);
-            // Node is marked for deletion, retry
             continue;
         }
-        
-        // Collect all nodes to lock (preds and succs up to topLevel)
-        Node *nodesToLock[2*(MAX_LEVEL+1)];
+
+        skiplist_node *nodesToLock[MAX_LEVEL];
         int numNodesToLock = 0;
         nodesToLock[numNodesToLock++] = preds[0];
-        for(int level = 1; level <= topLevel; level++) {
-             if(preds[level]->key != preds[level-1]->key) {
+        for (int level = 1; level <= topLevel; level++)
+        {
+            if (preds[level]->key != preds[level - 1]->key)
+            {
                 nodesToLock[numNodesToLock++] = preds[level];
             }
         }
-        
-        // Acquire all necessary locks in order
-        for(int i = 0; i < numNodesToLock; i++) {
+
+        for (int i = 0; i < numNodesToLock; i++)
+        {
             omp_set_lock(&nodesToLock[i]->lock);
         }
-        
-        // Re-validate preds and succs
+
         int valid = 1;
-        for(int level = 0; level <= topLevel; level++) {
-            if(preds[level]->marked || succs[level]->marked || preds[level]->next[level] != succs[level]) {
-                valid = 0;
-                break;
-            }
+        for (int level = 0; level <= topLevel && valid; level++)
+        {
+            valid = preds[level]->marked == 0 && (succs[level] == NULL || succs[level]->marked == 0) && preds[level]->next[level] == succs[level];
         }
-        
-        if(!valid) {
-            for(int i = 0; i < numNodesToLock; i++) {
+
+        if (!valid)
+        {
+            for (int i = 0; i < numNodesToLock; i++)
+            {
                 omp_unset_lock(&nodesToLock[i]->lock);
             }
-            continue; // Retry
+            continue;
         }
-        
-        // Create the new node
-        Node *newNode = createNode(key, value, topLevel);
 
-        // Insert the new node by updating next pointers
-        for(int level = 0; level <= topLevel; level++) {
-            newNode->next[level] = succs[level];
-            preds[level]->next[level] = newNode;
+        skiplist_node *new_node = (skiplist_node *)malloc(sizeof(skiplist_node));
+        if (!new_node)
+        {
+            for (int i = 0; i < numNodesToLock; i++)
+            {
+                omp_unset_lock(&nodesToLock[i]->lock);
+            }
+            return -1;
         }
-        newNode->fullyLinked = 1; // Linearization point
-        
-        // Release all acquired locks
-        for(int i = 0; i < numNodesToLock; i++) {
+        new_node->key = key;
+        new_node->value = value;
+        new_node->marked = 0;
+        new_node->fullyLinked = 0;
+        new_node->top_level = topLevel;
+        omp_init_lock(&new_node->lock);
+        for (int i = 0; i < MAX_LEVEL; i++)
+        {
+            new_node->next[i] = NULL;
+        }
+
+        for (int level = 0; level <= topLevel; level++)
+        {
+            new_node->next[level] = succs[level];
+            preds[level]->next[level] = new_node;
+        }
+
+        new_node->fullyLinked = 1; // Linearization point
+
+        for (int i = 0; i < numNodesToLock; i++)
+        {
             omp_unset_lock(&nodesToLock[i]->lock);
         }
-        
-        return 1; // Successfully inserted
+
+        return 1;
+    }
+}
+
+int con(skiplist *list, long key)
+{
+    // skiplist_node *preds[MAX_LEVEL];
+    // skiplist_node *succs[MAX_LEVEL];
+    // int lFound = find(list, key, preds, succs);
+    // return (lFound != -1 && succs[lFound]->fullyLinked && succs[lFound]->marked == 0);
+
+    skiplist_node *node = list->header;
+    for (int i = MAX_LEVEL - 1; i >= 0; i--)
+    {
+        while (node->next[i] != NULL && node->next[i]->key < key)
+        {
+            node = node->next[i];
+        }
+    }
+
+    return node->next[0] != NULL && 
+        node->next[0]->key == key && 
+        node->next[0]->fullyLinked == 1 && 
+        node->next[0]->marked == 0;
+}
+
+int rem(skiplist *list, long key)
+{
+    int isMarked = 0;
+    int topLevel = -1;
+    skiplist_node *preds[MAX_LEVEL];
+    skiplist_node *succs[MAX_LEVEL];
+
+    while (1)
+    {
+        int lFound = find(list, key, preds, succs);
+        if (lFound == -1)
+        {
+            return 0;
+        }
+
+        skiplist_node *victim = succs[lFound];
+        if (isMarked == 1 || (victim->fullyLinked == 1 && victim->marked == 0 && victim->top_level == lFound))
+        {
+            if (isMarked == 0)
+            {
+                topLevel = victim->top_level;
+                omp_set_lock(&victim->lock);
+                if (victim->marked == 1)
+                {
+                    omp_unset_lock(&victim->lock);
+                    return 0;
+                }
+                victim->marked = 1;
+                isMarked = 1;
+            }
+
+            skiplist_node *nodesToLock[MAX_LEVEL];
+            int numNodesToLock = 0;
+            nodesToLock[numNodesToLock++] = preds[0];
+            for (int level = 1; level <= victim->top_level; level++)
+            {
+                if (preds[level]->key != preds[level - 1]->key)
+                {
+                    nodesToLock[numNodesToLock++] = preds[level];
+                }
+            }
+            for (int i = 0; i < numNodesToLock; i++)
+            {
+                omp_set_lock(&nodesToLock[i]->lock);
+            }
+
+            int valid = 1;
+            for (int level = 0; level <= topLevel && valid; level++)
+            {
+                valid = preds[level]->marked == 0 && preds[level]->next[level] == victim;
+            }
+
+            if (!valid)
+            {
+                for (int i = 0; i < numNodesToLock; i++)
+                {
+                    omp_unset_lock(&nodesToLock[i]->lock);
+                }
+                omp_unset_lock(&victim->lock);
+                continue;
+            }
+
+            for (int level = 0; level <= topLevel; level++)
+            {
+                preds[level]->next[level] = victim->next[level];
+            }
+
+            for (int i = 0; i < numNodesToLock; i++)
+            {
+                omp_unset_lock(&nodesToLock[i]->lock);
+            }
+            omp_unset_lock(&victim->lock);
+
+            return 1;
+        }
+        return 0;
     }
 }
