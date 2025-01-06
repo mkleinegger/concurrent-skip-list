@@ -1,17 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <omp.h>
-#include <time.h>
-
+#include "skiplist_finelocking.h"
 #include "skiplist.h"
-
-int find(skiplist *list, long key, skiplist_node **preds, skiplist_node **succs);
 
 void init(skiplist *list)
 {
-    list->max_level = MAX_LEVEL;
-
     list->header = (skiplist_node *)malloc(sizeof(skiplist_node));
     list->header->key = INT_MIN;
     list->header->value = NULL;
@@ -45,15 +36,15 @@ void clean(skiplist *list)
     }
 
     list->header = NULL;
-    list->max_level = 0;
 }
 
-int randomLevel(unsigned int seed, double p, int max_level)
+int find(skiplist *list, long key, skiplist_node **preds, skiplist_node **succs);
+
+int randomLevel(double p, int max_level)
 {
     int level = 0;
-    while (((double)rand_r(&seed) / (double)RAND_MAX) < p && level < max_level)
+    while ((rand() / (double)RAND_MAX) < p && level < max_level)
     {
-        // while ((rand() / (double) RAND_MAX) < p && level < max_level){
         level++;
     }
     return level;
@@ -83,8 +74,7 @@ int find(skiplist *list, long key, skiplist_node **preds, skiplist_node **succs)
 
 int add(skiplist *list, long key, void *value)
 {
-    unsigned int seed = time(NULL) ^ omp_get_thread_num();
-    int topLevel = randomLevel(seed, P, MAX_LEVEL - 1);
+    int topLevel = randomLevel(P, MAX_LEVEL - 1);
     skiplist_node *preds[MAX_LEVEL];
     skiplist_node *succs[MAX_LEVEL];
 
@@ -174,11 +164,6 @@ int add(skiplist *list, long key, void *value)
 
 int con(skiplist *list, long key)
 {
-    // skiplist_node *preds[MAX_LEVEL];
-    // skiplist_node *succs[MAX_LEVEL];
-    // int lFound = find(list, key, preds, succs);
-    // return (lFound != -1 && succs[lFound]->fullyLinked && succs[lFound]->marked == 0);
-
     skiplist_node *node = list->header;
     for (int i = MAX_LEVEL - 1; i >= 0; i--)
     {
@@ -188,10 +173,10 @@ int con(skiplist *list, long key)
         }
     }
 
-    return node->next[0] != NULL && 
-        node->next[0]->key == key && 
-        node->next[0]->fullyLinked == 1 && 
-        node->next[0]->marked == 0;
+    return node->next[0] != NULL &&
+           node->next[0]->key == key &&
+           node->next[0]->fullyLinked == 1 &&
+           node->next[0]->marked == 0;
 }
 
 int rem(skiplist *list, long key)

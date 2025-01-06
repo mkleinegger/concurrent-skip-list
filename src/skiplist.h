@@ -1,43 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <assert.h>
+#include <stdatomic.h>
+#include <limits.h>
+#include <omp.h>
 
 #define MAX_LEVEL 32
 #define P 0.5
-#define COUNTERS
 
-#ifdef COUNTERS
-#define INC(_c) ((_c)++)
-#else
-#define INC(_c)
-#endif
-
-#define FINE_LOCKING
-
-typedef struct _node {
+typedef struct _node
+{
     long key;
     void *value;
-    struct _node *next[MAX_LEVEL];
+    int top_level;
 
-    #ifdef FINE_LOCKING
+#ifdef FINE_LOCKING
     omp_lock_t lock;
     volatile int marked;
     volatile int fullyLinked;
-    int top_level;
-    #endif
+    struct _node *next[MAX_LEVEL];
+#elif defined(WAIT_FREE)
+    _Atomic(struct _node *) next[MAX_LEVEL];
+#else
+    struct _node *next[MAX_LEVEL];
+#endif
 } skiplist_node;
 
-typedef struct _list {
+typedef struct _list
+{
     struct _node *header;
-    int max_level;
 
-#ifdef COUNTERS
-    unsigned long long adds, rems, cons;
+#ifdef GLOBAL_LOCK
+    omp_lock_t lock;
 #endif
 } skiplist;
 
-void init(skiplist* list);
+void init(skiplist *list);
 void clean(skiplist *list);
 
 int add(skiplist *list, long key, void *value);
