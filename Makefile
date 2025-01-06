@@ -1,48 +1,53 @@
 NAME = library
 
-CC = gcc-12
-RM ?= @rm
-MKDIR ?= @mkdir
+CC = gcc
+RM ?= rm -rf
+MKDIR ?= mkdir -p
 
-CFLAGS := -O3 -Wall -Wextra -fopenmp
-
+CFLAGS := -O3 -Wall -Wextra -fopenmp -fPIC
 SRC_DIR = src
 BUILD_DIR = build
 DATA_DIR = data
 INCLUDES = inc
 
-OBJECTS = $(NAME).o
+# Skiplist variants
+SKIPLISTS = seq lockfree finelocking globallocking
+LIBRARIES = $(foreach variant,$(SKIPLISTS),$(BUILD_DIR)/$(NAME)_$(variant).so)
 
+# Default target
+all: create_dirs $(LIBRARIES)
+	@echo "All shared libraries built."
 
-all: $(BUILD_DIR) $(NAME) $(NAME).so
-	@echo "Built $(NAME)"
-
-$(DATA_DIR):
-	@echo "Creating data directory: $(DATA_DIR)"
+# Create directories as a separate target to avoid conflicts
+create_dirs:
+	@echo "Ensuring directories exist: $(BUILD_DIR) and $(DATA_DIR)"
+	$(MKDIR) $(BUILD_DIR)
 	$(MKDIR) $(DATA_DIR)
 
-$(BUILD_DIR):
-	@echo "Creating build directory: $(BUILD_DIR)"
-	$(MKDIR) $(BUILD_DIR)
+# Build shared libraries for each skiplist variant
+$(BUILD_DIR)/$(NAME)_seq.so: $(SRC_DIR)/skiplist_seq.c $(SRC_DIR)/library.c | $(BUILD_DIR)
+	@echo "Building library: $@"
+	$(CC) $(CFLAGS) -shared -o $@ $^
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@echo "Compiling $<"
-	$(CC) $(CFLAGS) -fPIC -I$(INCLUDES) -c -o $@ $<
+$(BUILD_DIR)/$(NAME)_lockfree.so: $(SRC_DIR)/skiplist_lockfree.c $(SRC_DIR)/library.c | $(BUILD_DIR)
+	@echo "Building library: $@"
+	$(CC) $(CFLAGS) -shared -o $@ $^
 
-$(NAME): $(foreach object,$(OBJECTS),$(BUILD_DIR)/$(object))
-	@echo "Linking $(NAME)"
-	$(CC) $(CFLAGS) -o $@ $^
+$(BUILD_DIR)/$(NAME)_finelocking.so: $(SRC_DIR)/skiplist_finelocking.c $(SRC_DIR)/library.c | $(BUILD_DIR)
+	@echo "Building library: $@"
+	$(CC) $(CFLAGS) -shared -o $@ $^
 
-$(NAME).so: $(foreach object,$(OBJECTS),$(BUILD_DIR)/$(object))
-	@echo "Linking $(NAME)"
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ $^ 
+$(BUILD_DIR)/$(NAME)_globallocking.so: $(SRC_DIR)/skiplist_globallocking.c $(SRC_DIR)/library.c | $(BUILD_DIR)
+	@echo "Building library: $@"
+	$(CC) $(CFLAGS) -shared -o $@ $^
+
+# Run small benchmark
+small-bench: all
+	@echo "Running small-bench with all libraries ..."
+	python benchmark.py
 
 bench:
 	@echo "This could run a sophisticated benchmark"
-
-small-bench: $(BUILD_DIR) $(NAME).so $(DATA_DIR)
-	@echo "Running small-bench ..."
-	@python benchmark.py
 
 small-plot: 
 	@echo "Plotting small-bench results ..."
@@ -59,15 +64,10 @@ report: small-plot
 zip:
 	@zip project.zip benchmark.py Makefile README src/* plots/avg_plot.tex report/report.tex run_nebula.sh
 
+# Clean up build artifacts
 clean:
-	@echo "Cleaning build directory: $(BUILD_DIR) and binaries: $(NAME) $(NAME).so"
+	@echo "Cleaning build directory: $(BUILD_DIR), data directory: $(DATA_DIR), and libraries."
 	$(RM) -Rf $(BUILD_DIR)
 	$(RM) -f $(NAME) $(NAME).so
 
-.PHONY: clean report
-
-custom-bench: 
-	@echo "Running custom-bench ..."
-	@gcc-12 -O2 -fPIC -shared -fopenmp ./src/skiplistseq.c ./src/library.c -o library.so
-	@python benchmark.py
-
+.PHONY: all create_dirs clean small-bench

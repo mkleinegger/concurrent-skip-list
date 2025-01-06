@@ -9,7 +9,7 @@
 
 #include "skiplist.h"
 
-#define VERBOSE
+// #define VERBOSE
 #define INC(_c) ((_c)++)
 
 /* These structs should match the definition in benchmark.py */
@@ -151,7 +151,6 @@ struct bench_result run_benchmark(
             end = (thread_id + 1) * step + start_range;
         }
 
-        unsigned int thread_seed = seed + thread_id;
 #pragma omp barrier
         long key = 0;
         tic = toc = omp_get_wtime();
@@ -160,7 +159,7 @@ struct bench_result run_benchmark(
             switch (selection_strategy)
             {
             case 0:
-                key = rand_r(&thread_seed) % (end_range - start_range) + start_range;
+                key = rand() % (end_range - start_range) + start_range;
                 break;
             case 1:
                 key = (key + 1) % (end_range - start_range) + start_range;
@@ -177,7 +176,7 @@ struct bench_result run_benchmark(
                 break;
             }
 
-            int r = rand_r(&thread_seed) % 100 + 1;
+            int r = rand() % 100;
             if (r <= i)
             {
                 if (add(list, key, NULL))
@@ -196,7 +195,7 @@ struct bench_result run_benchmark(
                 rems++;
                 ops++;
             }
-            else
+            else if(r > i + d && r <= i + d + c)
             {
                 if (con(list, key))
                 {
@@ -260,7 +259,6 @@ struct bench_result bench(
     }
     init(mylist);
 
-    // Perform basic correctness test in a single thread
 #pragma omp single
     {
         if (basic_testing == 1)
@@ -313,19 +311,10 @@ struct bench_result bench(
 
     for (int i = 0; i < num_of_threads; i++)
     {
-        printf("Thread %d: %llu operations\n", i, result.operations_per_thread[i]);
+        //printf("Thread %d: %llu operations\n", i, result.operations_per_thread[i]);
     }
 #endif
 
     return result;
 }
 
-/* main is not relevant for benchmark.py but necessary when run alone for
- * testing.
- */
-int main(int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    bench(64, 1, 10, 10, 80, 0, 100000, 1, 0, 0, 1, 42);
-}

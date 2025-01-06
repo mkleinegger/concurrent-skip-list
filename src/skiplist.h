@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <omp.h>
 
-#define MAX_LEVEL 32
+#define MAX_LEVEL 16
 #define P 0.5
 
 typedef struct _node

@@ -1,18 +1,22 @@
-import ctypes
 import os
+os.environ["OMP_STACKSIZE"] = "16k"
+import ctypes
 import datetime
-
+import csv
+# import pandas as pd
+import time
 
 class cBenchResult(ctypes.Structure):
     _fields_ = [
         ("time", ctypes.c_float),
+        ("total_operations", ctypes.c_longlong),
         ("total_inserts", ctypes.c_longlong),
         ("successful_inserts", ctypes.c_longlong),
         ("total_deletes", ctypes.c_longlong),
         ("successful_deletes", ctypes.c_longlong),
         ("total_contains", ctypes.c_longlong),
         ("successful_contains", ctypes.c_longlong),
-        ("total_operations", ctypes.c_longlong),
+        ("operations_per_thread", ctypes.c_longlong * 64),
     ]
 
 
@@ -34,6 +38,7 @@ class Benchmark:
         operations_mix,
         disjoint_range,
         selection_strategy,
+        basic_testing,
         seed,
         basedir,
         name,
@@ -46,6 +51,7 @@ class Benchmark:
         self.operations_mix = operations_mix
         self.disjoint_range = disjoint_range
         self.selection_strategy = selection_strategy
+        self.basic_testing = basic_testing
         self.seed = seed
         self.basedir = basedir
         self.name = name
@@ -55,88 +61,117 @@ class Benchmark:
 
     def run(self):
         """
-        Runs the benchmark with the given parameters. Collects
-        repetitions_per_point data points and writes them back to the data
-        dictionary to be processed later.
+        Runs the benchmark with the given parameters. Writes results to a CSV
+        file after each repetition for incremental updates.
         """
         self.now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         print(f"Starting Benchmark run at {self.now}")
 
-        for t in self.num_of_threads:
-            tmp = []
-            for _ in range(0, self.repetitions_per_point):
-                result = self.bench_function(
-                    ctypes.c_int(t),
-                    ctypes.c_int(self.runtime_in_sec),
-                    ctypes.c_float(self.operations_mix[0]),
-                    ctypes.c_float(self.operations_mix[1]),
-                    ctypes.c_float(self.operations_mix[2]),
-                    ctypes.c_int(self.base_range[0]),
-                    ctypes.c_int(self.base_range[1]),
-                    ctypes.c_int(1 if self.disjoint_range else 0),
-                    ctypes.c_int(self.selection_strategy),
-                    ctypes.c_int(0),
-                    ctypes.c_int(self.seed),
-                )
+        # Create directory for results
+        result_dir = f"{self.basedir}/data/{self.now}/results"
+        os.makedirs(result_dir, exist_ok=True)
 
-                tmp.append(
-                    {
-                        "time": result.time,
-                        "total_inserts": result.total_inserts,
-                        "successful_inserts": result.successful_inserts,
-                        "total_deletes": result.total_deletes,
-                        "successful_deletes": result.successful_deletes,
-                        "total_contains": result.total_contains,
-                        "successful_contains": result.successful_contains,
-                    }
-                )
+        # Open CSV file for appending results
+        result_file = f"{result_dir}/{self.name}.csv"
+        with open(result_file, mode="w", newline="") as csvfile:
+            csv_writer = csv.writer(csvfile)
 
-            self.data[t] = tmp
+            # Write header
+            csv_writer.writerow(
+                [
+                    "threads",
+                    "repetition",
+                    "time",
+                    "total_inserts",
+                    "successful_inserts",
+                    "total_deletes",
+                    "successful_deletes",
+                    "total_contains",
+                    "successful_contains",
+                    "total_operations",
+                ]
+            )
+
+            for t in self.num_of_threads:
+                #time.sleep(5)
+                for i in range(0, self.repetitions_per_point):
+                    result = self.bench_function(
+                        ctypes.c_int(t),
+                        ctypes.c_int(self.runtime_in_sec),
+                        ctypes.c_float(self.operations_mix[0]),
+                        ctypes.c_float(self.operations_mix[1]),
+                        ctypes.c_float(self.operations_mix[2]),
+                        ctypes.c_int(self.base_range[0]),
+                        ctypes.c_int(self.base_range[1]),
+                        ctypes.c_int(1 if self.disjoint_range else 0),
+                        ctypes.c_int(self.selection_strategy),
+                        ctypes.c_int(0),
+                        ctypes.c_int(1 if self.basic_testing else 0),
+                        ctypes.c_int(self.seed),
+                    )
+
+                    # Write the result of the current repetition as a row
+                    csv_writer.writerow(
+                        [
+                            t,
+                            i,
+                            result.time,
+                            result.total_inserts,
+                            result.successful_inserts,
+                            result.total_deletes,
+                            result.successful_deletes,
+                            result.total_contains,
+                            result.successful_contains,
+                            result.total_operations,
+                        ]
+                    )
+                    csvfile.flush()  # Ensure data is written immediately
 
     def write_avg_data(self):
         """
-        Writes averages for each point measured into a dataset in the data
-        folder timestamped when the run was started.
+        Incrementally processes the CSV file with benchmark results, averages data over threads,
+        and writes the averages to a new CSV file without using pandas.
         """
         if self.now is None:
             raise Exception("Benchmark was not run. Run before writing data.")
 
-        # Create directory if it doesn't exist
+        # Paths for result and averaged data
+        result_file = f"{self.basedir}/data/{self.now}/results/{self.name}.csv"
         avg_dir = f"{self.basedir}/data/{self.now}/avg"
         os.makedirs(avg_dir, exist_ok=True)
+        avg_file = f"{avg_dir}/{self.name}_averages.csv"
 
-        # Open file for writing
-        with open(f"{avg_dir}/{self.name}.data", "w") as datafile:
-            datafile.write(
-                "threads time total_inserts successful_inserts total_deletes successful_deletes total_contains successful_contains\n"
-            )
-            for x, box in self.data.items():
-                # Calculate averages for each metric
-                avg_time = sum([entry["time"] for entry in box]) / len(box)
-                avg_total_inserts = sum(
-                    [entry["total_inserts"] for entry in box]
-                ) / len(box)
-                avg_successful_inserts = sum(
-                    [entry["successful_inserts"] for entry in box]
-                ) / len(box)
-                avg_total_deletes = sum(
-                    [entry["total_deletes"] for entry in box]
-                ) / len(box)
-                avg_successful_deletes = sum(
-                    [entry["successful_deletes"] for entry in box]
-                ) / len(box)
-                avg_total_contains = sum(
-                    [entry["total_contains"] for entry in box]
-                ) / len(box)
-                avg_successful_contains = sum(
-                    [entry["successful_contains"] for entry in box]
-                ) / len(box)
+        # Dictionary to store sums and counts for averaging
+        data = {}
 
-                # Write averages as a single row
-                datafile.write(
-                    f"{x} {avg_time} {avg_total_inserts} {avg_successful_inserts} "
-                    f"{avg_total_deletes} {avg_successful_deletes} {avg_total_contains} {avg_successful_contains}\n"
-                )
+        with open(result_file, mode="r") as infile:
+            reader = csv.reader(infile)
+            headers = next(reader)  # Read the header
+
+            for row in reader:
+                threads = int(row[0])  # The first column is 'threads'
+                values = list(map(float, row[2:]))  # Convert numeric columns to float
+
+                if threads not in data:
+                    data[threads] = {"sum": [0] * len(values), "count": 0}
+
+                # Incrementally add the row values to the sums
+                for i, value in enumerate(values):
+                    data[threads]["sum"][i] += value
+                data[threads]["count"] += 1
+
+        # Write averages to a new CSV file
+        with open(avg_file, mode="w", newline="") as outfile:
+            writer = csv.writer(outfile)
+            writer.writerow(["threads"] + headers[2:])  # Write header excluding repetition column
+
+            for threads, stats in sorted(data.items()):
+                # Calculate averages
+                averages = [s / stats["count"] for s in stats["sum"]]
+                writer.writerow([threads] + averages)
+
+        print(f"Averaged data written to: {avg_file}")
+
 
 
 def benchmark():
@@ -144,29 +179,47 @@ def benchmark():
     Requires the binary to also be present as a shared library.
     """
     basedir = os.path.dirname(os.path.abspath(__file__))
-    binary = ctypes.CDLL(f"{basedir}/library.so")
+    binary = ctypes.CDLL(f"{basedir}/build/library_globallocking.so")
     # Set the result type for each benchmark function
-    binary.small_bench.restype = cBenchResult
+    binary.bench.restype = cBenchResult
 
-    # num_threads = [1, 2, 4, 8, 10, 20, 40, 64]
-    num_threads = [1]
+    num_threads = [1, 2, 4, 8, 10, 20, 40, 64]
 
-    smallbench = Benchmark(
-        bench_function=binary.small_bench,
+    bench = Benchmark(
+        bench_function=binary.bench,
         num_of_threads=num_threads,
         base_range=(0, 100000),
         runtime_in_sec=1,
-        operations_mix=(100, 0, 0),
+        operations_mix=(40, 40, 20),
         disjoint_range=False,
         selection_strategy=1,
         seed=42,
         repetitions_per_point=1,
+        basic_testing=True,
         basedir=basedir,
-        name="smallbench",
+        name="bench",
     )
 
-    smallbench.run()
-    # smallbench.write_avg_data()
+    bench.run()
+    bench.write_avg_data()
+
+    bench2 = Benchmark(
+        bench_function=binary.bench,
+        num_of_threads=num_threads,
+        base_range=(0, 100000),
+        runtime_in_sec=1,
+        operations_mix=(10, 10, 80),
+        disjoint_range=False,
+        selection_strategy=1,
+        seed=42,
+        repetitions_per_point=1,
+        basic_testing=True,
+        basedir=basedir,
+        name="bench",
+    )
+
+    bench2.run()
+    bench2.write_avg_data()
 
 
 if __name__ == "__main__":
