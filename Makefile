@@ -46,8 +46,15 @@ small-bench: all
 	@echo "Running small-bench with all libraries ..."
 	python benchmark.py
 
-bench:
-	@echo "This could run a sophisticated benchmark"
+bench-global: all
+	@echo "This could run a sophisticated, FULL benchmark"
+	@echo "Plotting bench results for global lock - 1 repetition..."
+	python benchmark_globallock.py 
+
+bench-fine: all
+	@echo "This could run a sophisticated, FULL benchmark"
+	@echo "Plotting bench results for fine lock - 1 repetition..."
+	python benchmark_finelock.py 
 
 small-plot: 
 	@echo "Plotting small-bench results ..."
@@ -62,7 +69,7 @@ report: small-plot
 	@echo "Done"
 
 zip:
-	@zip project.zip benchmark.py Makefile README src/* plots/avg_plot.tex report/report.tex run_nebula.sh
+	@zip project.zip benchmark.py benchmark_globallock.py benchmark_finelock.py Makefile README src/* plots/avg_plot.tex report/report.tex run_nebula.sh
 
 # Clean up build artifacts
 clean:

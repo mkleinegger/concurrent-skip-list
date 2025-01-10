@@ -1,10 +1,12 @@
 import os
-os.environ["OMP_STACKSIZE"] = "16k"
+os.environ["OMP_STACKSIZE"] = "64k"
 import ctypes
 import datetime
 import csv
 # import pandas as pd
 import time
+import concurrent.futures
+
 
 class cBenchResult(ctypes.Structure):
     _fields_ = [
@@ -18,8 +20,6 @@ class cBenchResult(ctypes.Structure):
         ("successful_contains", ctypes.c_longlong),
         ("operations_per_thread", ctypes.c_longlong * 64),
     ]
-
-
 
 class Benchmark:
     """
@@ -93,22 +93,22 @@ class Benchmark:
             )
 
             for t in self.num_of_threads:
-                #time.sleep(5)
                 for i in range(0, self.repetitions_per_point):
                     result = self.bench_function(
-                        ctypes.c_int(t),
-                        ctypes.c_int(self.runtime_in_sec),
-                        ctypes.c_float(self.operations_mix[0]),
-                        ctypes.c_float(self.operations_mix[1]),
-                        ctypes.c_float(self.operations_mix[2]),
-                        ctypes.c_int(self.base_range[0]),
-                        ctypes.c_int(self.base_range[1]),
-                        ctypes.c_int(1 if self.disjoint_range else 0),
-                        ctypes.c_int(self.selection_strategy),
-                        ctypes.c_int(0),
-                        ctypes.c_int(1 if self.basic_testing else 0),
-                        ctypes.c_int(self.seed),
-                    )
+                            ctypes.c_int(t),
+                            ctypes.c_int(self.runtime_in_sec),
+                            ctypes.c_float(self.operations_mix[0]),
+                            ctypes.c_float(self.operations_mix[1]),
+                            ctypes.c_float(self.operations_mix[2]),
+                            ctypes.c_int(self.base_range[0]),
+                            ctypes.c_int(self.base_range[1]),
+                            ctypes.c_int(1 if self.disjoint_range else 0),
+                            ctypes.c_int(self.selection_strategy),
+                            ctypes.c_int(0),
+                            ctypes.c_int(1 if self.basic_testing else 0),
+                            ctypes.c_int(self.seed),
+                        )
+
 
                     # Write the result of the current repetition as a row
                     csv_writer.writerow(
@@ -126,6 +126,7 @@ class Benchmark:
                         ]
                     )
                     csvfile.flush()  # Ensure data is written immediately
+                    del result
 
     def write_avg_data(self):
         """
@@ -179,7 +180,7 @@ def benchmark():
     Requires the binary to also be present as a shared library.
     """
     basedir = os.path.dirname(os.path.abspath(__file__))
-    binary = ctypes.CDLL(f"{basedir}/build/library_globallocking.so")
+    binary = ctypes.CDLL(f"{basedir}/build/library_finelocking.so")
     # Set the result type for each benchmark function
     binary.bench.restype = cBenchResult
 
@@ -199,7 +200,6 @@ def benchmark():
         basedir=basedir,
         name="bench",
     )
-
     bench.run()
     bench.write_avg_data()
 
@@ -217,9 +217,45 @@ def benchmark():
         basedir=basedir,
         name="bench",
     )
-
     bench2.run()
     bench2.write_avg_data()
+
+    bench3 = Benchmark(
+        bench_function=binary.bench,
+        num_of_threads=num_threads,
+        base_range=(0, 100000),
+        runtime_in_sec=1,
+        operations_mix=(40, 40, 20),
+        disjoint_range=False,
+        selection_strategy=1,
+        seed=42,
+        repetitions_per_point=1,
+        basic_testing=True,
+        basedir=basedir,
+        name="bench",
+    )
+    bench3.run()
+    bench3.write_avg_data()
+
+    binary2 = ctypes.CDLL(f"{basedir}/build/library_lockfree.so")
+    # Set the result type for each benchmark function
+    binary2.bench.restype = cBenchResult
+    bench4 = Benchmark(
+        bench_function=binary2.bench,
+        num_of_threads=num_threads,
+        base_range=(0, 100000),
+        runtime_in_sec=1,
+        operations_mix=(10, 10, 80),
+        disjoint_range=False,
+        selection_strategy=0,
+        seed=42,
+        repetitions_per_point=1,
+        basic_testing=True,
+        basedir=basedir,
+        name="bench_lockfree",
+    )
+    bench4.run()
+    bench4.write_avg_data()
 
 
 if __name__ == "__main__":
