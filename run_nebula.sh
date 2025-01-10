@@ -27,7 +27,7 @@ function run_on_nebula {
         cd uut &&
         make
 
-        /usr/local/slurm/bin/srun -t 1 -p q_thesis make $TARGET
+        /usr/local/slurm/bin/srun -t 1 -p q_student make $TARGET
         while "'[ ! $(/usr/local/slurm/bin/squeue | wc -l) = 1 ]'"; do
             /usr/local/slurm/bin/squeue
             sleep 10

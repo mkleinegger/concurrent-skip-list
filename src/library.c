@@ -270,22 +270,28 @@ struct bench_result bench(
     srand(seed);
     for (int j = 0; j < prefill_count; j++)
     {
-        int key;
-        switch (selection_strategy)
-        {
-        case 0:
-            key = rand() % (end_range - start_range) + start_range;
-            break;
-        case 1:
-        case 2:
-            key = j % (end_range - start_range) + start_range;
-            break;
-        default:
-            key = rand() % (end_range - start_range) + start_range;
-            break;
+    int key;
+    switch (selection_strategy)
+    {
+    case 0:  // Random keys
+        key = rand() % (end_range - start_range) + start_range;
+        break;
+    case 1:  // Deterministic sequential keys
+        key = j + start_range;  // Strict sequential order
+        if (key >= end_range) {
+            fprintf(stderr, "Sequential prefill: Key out of range.\n");
+            exit(EXIT_FAILURE);
         }
-        add(mylist, key, NULL);
+        break;
+    case 2:  // Unique random keys
+        key = j % (end_range - start_range) + start_range;
+        break;
+    default: // Fallback to random keys
+        key = rand() % (end_range - start_range) + start_range;
+        break;
     }
+    add(mylist, key, NULL);
+}
 
     struct bench_result result = {0};
     omp_set_num_threads(num_of_threads);
