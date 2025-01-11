@@ -3,33 +3,36 @@ TARGET=$2
 LOG_FILE=nebula.log
 LOG_SMALL_BENCH=nebula_small_bench.log
 DATA_DIR=data
+USERNAME="amp24w52" # Explicitly set your username for nebula
 
 function copy_to_nebula {
-    scp $ZIP_FILE nebula:~/test/$ZIP_FILE
+    scp $ZIP_FILE "$USERNAME@nebula:~/test/$ZIP_FILE"
 }
 
 function copy_from_nebula {
     mkdir -p $DATA_DIR
-    scp -r 'nebula:~/test/uut/data/*' $DATA_DIR
+    scp -r "$USERNAME@nebula:~/test/uut/data/*" $DATA_DIR
 }
 
 function clean_test_dir {
-    ssh nebula "mkdir -p test"
-    ssh nebula "\
+    ssh "$USERNAME@nebula" "mkdir -p test"
+    ssh "$USERNAME@nebula" "\
         cd test
         rm -rf *"
 }
 
 function run_on_nebula {
-    ssh nebula "\
+    ssh "$USERNAME@nebula" "\
         cd test
         unzip -u $ZIP_FILE -d uut &&
         cd uut &&
         make
 
-        /usr/local/slurm/bin/srun -t 1 -p q_student make $TARGET
-        while "'[ ! $(/usr/local/slurm/bin/squeue | wc -l) = 1 ]'"; do
-            /usr/local/slurm/bin/squeue
+        /usr/local/slurm/bin/srun -t 10 -p q_student make $TARGET &
+
+        JOB_ID=\$(/usr/local/slurm/bin/squeue -u $USERNAME | awk 'NR==2 {print \$1}')
+        while /usr/local/slurm/bin/squeue -u $USERNAME | grep -q \$JOB_ID; do
+            /usr/local/slurm/bin/squeue -u $USERNAME
             sleep 10
         done
 
