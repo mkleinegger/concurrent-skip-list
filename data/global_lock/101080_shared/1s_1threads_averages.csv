@@ -1,0 +1,2 @@
+threads,time,total_inserts,successful_inserts,total_deletes,successful_deletes,total_contains,successful_contains,total_operations
+1,1.0000001192092896,234323.0,138854.0,212777.0,87183.0,1681943.0,687933.0,2129043.0

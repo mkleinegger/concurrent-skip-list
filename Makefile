@@ -56,6 +56,11 @@ bench-fine: all
 	@echo "Plotting bench results for fine lock - 1 repetition..."
 	python benchmark_finelock.py 
 
+bench-lockfree: all
+	@echo "This could run a sophisticated, FULL benchmark"
+	@echo "Plotting bench results for lock free - 1 repetition..."
+	python benchmark_lockfree.py 
+
 small-plot: 
 	@echo "Plotting small-bench results ..."
 	bash -c 'cd plots && pdflatex "\newcommand{\DATAPATH}{../data/$$(ls ../data/ | sort -r | head -n 1)}\input{avg_plot.tex}"'
@@ -69,7 +74,7 @@ report: small-plot
 	@echo "Done"
 
 zip:
-	@zip project.zip benchmark.py benchmark_globallock.py benchmark_finelock.py Makefile README src/* plots/avg_plot.tex report/report.tex run_nebula.sh
+	@zip project.zip benchmark.py benchmark_globallock.py benchmark_finelock.py benchmark_lockfree.py benchmark_seq.py Makefile README src/* plots/avg_plot.tex report/report.tex run_nebula.sh
 
 # Clean up build artifacts
 clean:
