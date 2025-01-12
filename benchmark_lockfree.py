@@ -185,9 +185,23 @@ def benchmark_lock_free():
     binary.bench.restype = cBenchResult
 
     num_threads = [1, 2, 4, 8, 10, 20, 40, 64]
+    # num_threads = [1, 2, 4, 8, 10, 20, 40, 64] #adjusted for 5s benching with 40 40 20 
+    
     runtimes = [1, 5]  # 1 second and 5 seconds
+    # runtimes = [1]  # 1 second - tested
+    # runtimes = [5]  # 5 seconds - tested
+    
+    
     mixes = [(10, 10, 80), (40, 40, 20)]  # Operation mixes
+    # mixes = [(10, 10, 80)]  # Operation mixes
+    # mixes = [(40, 40, 20)]  # Operation mixes
+    
+    
     disjoint_types = [True, False]  # Disjoint and shared ranges
+    # disjoint_types = [True]  # Disjoint and shared ranges - tested 
+    # disjoint_types = [False]  # Disjoint and shared ranges - tested
+    
+    
 
     for disjoint in disjoint_types:
         for mix in mixes:
