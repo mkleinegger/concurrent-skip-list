@@ -31,7 +31,7 @@ $(BUILD_DIR)/$(NAME)_seq.so: $(SRC_DIR)/skiplist_seq.c $(SRC_DIR)/library.c | $(
 
 $(BUILD_DIR)/$(NAME)_lockfree.so: $(SRC_DIR)/skiplist_lockfree.c $(SRC_DIR)/library.c | $(BUILD_DIR)
 	@echo "Building library: $@"
-	$(CC) $(CFLAGS) -shared -o $@ $^
+	$(CC) $(CFLAGS) -shared -o $@ $^ -latomic
 
 $(BUILD_DIR)/$(NAME)_finelocking.so: $(SRC_DIR)/skiplist_finelocking.c $(SRC_DIR)/library.c | $(BUILD_DIR)
 	@echo "Building library: $@"
@@ -44,22 +44,34 @@ $(BUILD_DIR)/$(NAME)_globallocking.so: $(SRC_DIR)/skiplist_globallocking.c $(SRC
 # Run small benchmark
 small-bench: all
 	@echo "Running small-bench with all libraries ..."
-	python benchmark.py
+	python benchmark_small.py
 
 bench-global: all
 	@echo "This could run a sophisticated, FULL benchmark"
-	@echo "Plotting bench results for global lock - 1 repetition..."
-	python benchmark_globallock.py 
+	python ./benchmark.py --library library_globallocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --disjoint-range --selection-strategy 0 --basic-testing --seed 42 --basedir . --name global_lock
+	python ./benchmark.py --library library_globallocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name global_lock
+	python ./benchmark.py --library library_globallocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --disjoint-range --selection-strategy 0 --basic-testing --seed 42 --basedir . --name global_lock
+	python ./benchmark.py --library library_globallocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name global_lock
 
 bench-fine: all
 	@echo "This could run a sophisticated, FULL benchmark"
 	@echo "Plotting bench results for fine lock - 1 repetition..."
-	python benchmark_finelock.py 
+	python ./benchmark.py --library library_finelocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --disjoint-range --selection-strategy 0 --basic-testing --seed 42 --basedir . --name fine_lock
+	python ./benchmark.py --library library_finelocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name fine_lock
+	python ./benchmark.py --library library_finelocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --disjoint-range --selection-strategy 0 --basic-testing --seed 42 --basedir . --name fine_lock
+	python ./benchmark.py --library library_finelocking.so --repetitions-per-point 3 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name fine_lock
+
 
 bench-lockfree: all
 	@echo "This could run a sophisticated, FULL benchmark"
-	@echo "Plotting bench results for lock free - 1 repetition..."
-	python benchmark_lockfree.py 
+	python ./benchmark.py --library library_lockfree.so --repetitions-per-point 1 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --disjoint-range --selection-strategy 0 --basic-testing --seed 42 --basedir . --name lock_free
+	python ./benchmark.py --library library_lockfree.so --repetitions-per-point 1 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name lock_free
+	python ./benchmark.py --library library_lockfree.so --repetitions-per-point 1 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --disjoint-range --selection-strategy 0 --basic-testing --seed 42 --basedir . --name lock_free
+	python ./benchmark.py --library library_lockfree.so --repetitions-per-point 1 --num-of-threads 1 2 4 8 10 20 40 64 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name lock_free
+
+bench-seq: all
+	python ./benchmark.py --library library_seq.so --repetitions-per-point 3 --num-of-threads 1 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name sequential
+	python ./benchmark.py --library library_seq.so --repetitions-per-point 3 --num-of-threads 1 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name sequential
 
 small-plot: 
 	@echo "Plotting small-bench results ..."
