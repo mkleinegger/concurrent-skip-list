@@ -43,6 +43,7 @@ Using those commands in combination with slurm on nebula should produce all resu
 If you want to generate a small sample using our small benchmark, you need to do the following:
 
 1. Set $USERNAME in `run_nebula.sh` to your username on the nebula system
+3. Run `make zip`
 2. Run `bash run_nebula.sh project.zip small-bench`
 3. Run `make small-plot`
 4. Run `make report`
