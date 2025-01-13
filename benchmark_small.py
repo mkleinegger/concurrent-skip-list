@@ -1,8 +1,16 @@
+##
+# @file benchmark_small.py
+# @author Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+# @date 2025-01-13
+#
+# @brief This script runs the benchmark-small specified in the task description.
+
 import argparse
 import os
 import ctypes
 
 from src.utils.bench_utils import cBenchResult, Benchmark
+
 
 def benchmark_all():
     basedir = os.path.dirname(os.path.abspath(__file__))
@@ -64,4 +72,3 @@ def benchmark_all():
 
 if __name__ == "__main__":
     benchmark_all()
-

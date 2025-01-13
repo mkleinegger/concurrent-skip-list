@@ -1,3 +1,6 @@
+# Author: Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+# Created: 2025-01-13
+
 NAME = library
 
 CC = gcc
@@ -10,11 +13,9 @@ BUILD_DIR = build
 DATA_DIR = data
 INCLUDES = inc
 
-# Skiplist variants
 SKIPLISTS = seq lockfree finelocking globallocking
 LIBRARIES = $(foreach variant,$(SKIPLISTS),$(BUILD_DIR)/$(NAME)_$(variant).so)
 
-# Default target
 all: create_dirs $(LIBRARIES)
 	@echo "All shared libraries built."
 
@@ -73,9 +74,22 @@ bench-seq: all
 	python ./benchmark.py --library library_seq.so --repetitions-per-point 3 --num-of-threads 1 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 40 40 20 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name sequential
 	python ./benchmark.py --library library_seq.so --repetitions-per-point 3 --num-of-threads 1 --base-range 0 100000 --runtime-in-sec 1 5 --operations-mix 10 10 80 --selection-strategy 0 --basic-testing --seed 42 --basedir . --name sequential
 
+bench-custom: all
+	python ./benchmark.py --library library_finelocking.so \
+        --repetitions-per-point 1 \
+        --num-of-threads 1 2 4 8 10 20 40 64 \
+        --base-range 0 100000 \
+        --runtime-in-sec 1 5 \
+        --operations-mix 40 40 20 \
+        --selection-strategy 0 \
+        --basic-testing \
+        --seed 42 \
+        --basedir . \
+        --name custom_results
+
 small-plot: 
 	@echo "Plotting small-bench results ..."
-	python plot_benchmark_small.py
+	python benchmark_small_plots.py
 	@echo "============================================"
 	@echo "Created plots/avgplot.pdf"
 
@@ -86,12 +100,13 @@ report: small-plot
 	@echo "Done"
 
 zip:
-	@zip project.zip benchmark.py benchmark_globallock.py benchmark_finelock.py benchmark_lockfree.py benchmark_seq.py Makefile README src/* plots/avg_plot.tex report/report.tex run_nebula.sh
+	@zip project.zip benchmark.py benchmark_small.py benchmark_small_plots.py Makefile README src/* src/utils/* notebooks/* report/report.tex run_nebula.sh run_setup_python.sh requirements.txt
 
 # Clean up build artifacts
 clean:
 	@echo "Cleaning build directory: $(BUILD_DIR), data directory: $(DATA_DIR), and libraries."
 	$(RM) -Rf $(BUILD_DIR)
+	$(RM) -Rf $(DATA_DIR)
 	$(RM) -f $(NAME) $(NAME).so
 
 .PHONY: all create_dirs clean small-bench

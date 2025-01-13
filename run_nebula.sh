@@ -1,3 +1,6 @@
+# Author: Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+# Created: 2025-01-13
+
 ZIP_FILE=$1
 TARGET=$2
 LOG_FILE=nebula.log

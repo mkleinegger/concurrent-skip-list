@@ -391,3 +391,18 @@ def plot_speedup_vs_sequential(
         )
     else:
         plt.show()
+
+def explode_average_ops_per_thread(df, column='average_operations_per_thread'):
+    df = df.reset_index(drop=True).copy()
+    exploded_rows = []
+
+    for i, row in df.iterrows():
+        arr = row[column]
+        for j, val in enumerate(arr):
+            exploded_row = row.copy()
+            exploded_row['row_id'] = i
+            exploded_row['index_in_array'] = j
+            exploded_row[column] = val
+            exploded_rows.append(exploded_row)
+
+    return pd.DataFrame(exploded_rows)

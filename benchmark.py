@@ -1,19 +1,26 @@
+##
+# @file benchmark.py
+# @author Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+# @date 2025-01-13
+#
+# @brief This script provides a command-line interface to run benchmarks on a skiplist implementation.
+
 import argparse
 import os
 import ctypes
 
 from src.utils.bench_utils import cBenchResult, Benchmark
 
+
 def main():
-    """
-    Parse command-line arguments and run the benchmark accordingly.
-    """
-    parser = argparse.ArgumentParser(description="Run the benchmark with command-line parameters.")
+    parser = argparse.ArgumentParser(
+        description="Run the benchmark with command-line parameters."
+    )
     parser.add_argument(
         "--library",
         type=str,
         default="library_globallocking.so",
-        help="Path to the shared library to test (e.g., library_globallocking.so)."
+        help="Path to the shared library to test (e.g., library_globallocking.so).",
     )
     parser.add_argument(
         "--repetitions-per-point",
@@ -58,7 +65,7 @@ def main():
         "--selection-strategy",
         type=int,
         default=0,
-        help="Selection strategy (0 => random).",
+        help="Selection strategy (0 => random, 1 => deterministic, 2 => random unique).",
     )
     parser.add_argument(
         "--basic-testing",
@@ -72,7 +79,7 @@ def main():
         help="Random seed.",
     )
     parser.add_argument(
-        "--prefill-count",  # New argument
+        "--prefill-count",
         type=int,
         default=0,
         help="Number of items to prefill before benchmarking, e.g., --prefill-count 1000.",
@@ -92,7 +99,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Load the shared library
     this_dir = os.path.dirname(os.path.abspath(__file__))
     lib_path = os.path.join(this_dir, "build", args.library)
     if not os.path.exists(lib_path):
@@ -100,7 +106,6 @@ def main():
     binary = ctypes.CDLL(lib_path)
     binary.bench.restype = cBenchResult
 
-    # Create the benchmark object with parsed arguments
     bench = Benchmark(
         bench_function=binary.bench,
         repetitions_per_point=args.repetitions_per_point,
@@ -112,12 +117,11 @@ def main():
         selection_strategy=args.selection_strategy,
         basic_testing=args.basic_testing,
         seed=args.seed,
-        prefill_count=args.prefill_count,  # Pass prefill_count
+        prefill_count=args.prefill_count,
         basedir=args.basedir,
         name=args.name,
     )
 
-    # Run and write averages
     bench.run()
     bench.write_avg_data()
 
