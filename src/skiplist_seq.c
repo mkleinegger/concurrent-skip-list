@@ -1,3 +1,11 @@
+/**
+ * @file skiplist_seq.c
+ * @author Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+ * @date 2025-01-13
+ *
+ * @brief This file implements the skiplist in a sequential, non cuncurrent way.
+ */
+
 #include "skiplist.h"
 
 void init(skiplist *list)

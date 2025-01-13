@@ -1,3 +1,12 @@
+/**
+ * @file library.c
+ * @author Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+ * @date 2025-01-13
+ *
+ * @brief This file implements the methods to perform necessary
+ * basic tests and benchmarks on the skiplist data structure.
+ */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,7 +21,6 @@
 // #define VERBOSE
 #define INC(_c) ((_c)++)
 
-/* These structs should match the definition in benchmark.py */
 struct bench_result
 {
     float time;
@@ -204,7 +212,7 @@ struct bench_result run_benchmark(
                 rems++;
                 ops++;
             }
-            else if(r > i + d && r <= i + d + c)
+            else if (r > i + d && r <= i + d + c)
             {
                 if (con(list, key))
                 {
@@ -281,28 +289,29 @@ struct bench_result bench(
     srand(seed);
     for (int j = 0; j < prefill_count; j++)
     {
-    int key;
-    switch (selection_strategy)
-    {
-    case 0:  // Random keys
-        key = rand() % (end_range - start_range) + start_range;
-        break;
-    case 1:  // Deterministic sequential keys
-        key = j + start_range;  // Strict sequential order
-        if (key >= end_range) {
-            fprintf(stderr, "Sequential prefill: Key out of range.\n");
-            exit(EXIT_FAILURE);
+        int key;
+        switch (selection_strategy)
+        {
+        case 0: // Random keys
+            key = rand() % (end_range - start_range) + start_range;
+            break;
+        case 1:                    // Deterministic sequential keys
+            key = j + start_range; // Strict sequential order
+            if (key >= end_range)
+            {
+                fprintf(stderr, "Sequential prefill: Key out of range.\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 2: // Unique random keys
+            key = j % (end_range - start_range) + start_range;
+            break;
+        default: // Fallback to random keys
+            key = rand() % (end_range - start_range) + start_range;
+            break;
         }
-        break;
-    case 2:  // Unique random keys
-        key = j % (end_range - start_range) + start_range;
-        break;
-    default: // Fallback to random keys
-        key = rand() % (end_range - start_range) + start_range;
-        break;
+        add(mylist, key, NULL);
     }
-    add(mylist, key, NULL);
-}
 
     struct bench_result result = {0};
     omp_set_num_threads(num_of_threads);
@@ -329,10 +338,9 @@ struct bench_result bench(
 
     for (int i = 0; i < num_of_threads; i++)
     {
-        //printf("Thread %d: %llu operations\n", i, result.operations_per_thread[i]);
+        printf("Thread %d: %llu operations\n", i, result.operations_per_thread[i]);
     }
 #endif
 
     return result;
 }
-

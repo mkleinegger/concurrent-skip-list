@@ -1,3 +1,12 @@
+/**
+ * @file skiplist_lockfree.h
+ * @author Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+ * @date 2025-01-13
+ *
+ * @brief This file imports the necessary libraries and defines the necessary macros
+ *  for the skiplist using a lock-free approach.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -5,7 +14,7 @@
 #include <time.h>
 #include <stdatomic.h>
 
-#define WAIT_FREE
+#define LOCK_FREE
 
 #define UNMARK_MASK ~1
 #define MARK_BIT 0x0000000000001

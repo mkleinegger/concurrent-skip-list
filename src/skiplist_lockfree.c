@@ -1,3 +1,11 @@
+/**
+ * @file skiplist_lockfree.c
+ * @author Natalia Tylek (12332258), Marlene Riegel (01620782), Maximilian Kleinegger (12041500)
+ * @date 2025-01-13
+ *
+ * @brief This file implements the skiplist using a lock-free approach.
+ */
+
 #include "skiplist_lockfree.h"
 #include "skiplist.h"
 
