@@ -33,7 +33,7 @@ def load_and_prepare_data(base_path="data"):
         base_name = filename.replace("_average.csv", "")
         splitted = base_name.split("_")
 
-        runtime_str = splitted[0].rstrip("s")  # remove trailing 's', e.g., '1'
+        runtime_str = splitted[1].rstrip("s")  # remove trailing 's', e.g., '1'
 
         try:
             runtime = int(runtime_str)
@@ -125,6 +125,7 @@ def plot_throughput(df, op_mix, range_type, runtime, store=False, base_path="plo
         plt.savefig(
             f"{base_path}/all_impl/benchmark_throughput_{op_mix}_{range_type}_{runtime}s.png"
         )
+        plt.close()
     else:
         plt.show()
 
@@ -197,6 +198,7 @@ def plot_total_vs_successful_operations(
             f"{base_path}/{implementation_name}/benchmark_succesful-vs-total-operation_{op_mix}_{range_type}_{runtime_in_sec}s.png",
             dpi=300,
         )
+        plt.close()
     else:
         plt.show()
 
@@ -285,6 +287,7 @@ def plot_total_vs_successful_operations_all_implementations(
             f"{base_path}/all_impl/benchmark_all_implementations_{operation_name}_{op_mix}_{range_type}_{runtime_in_sec}s.png",
             dpi=300,
         )
+        plt.close()
     else:
         plt.show()
 
@@ -351,6 +354,7 @@ def plot_success_ratio_all_implementations(
     if store:
         os.makedirs(f"{base_path}/sucess_ratio", exist_ok=True)
         plt.savefig(os.path.join(f"{base_path}/sucess_ratio", f"benchmark_success_ratio_{operation_name}_{op_mix}_{range_type}_{runtime_in_sec}s.png"), dpi=300)
+        plt.close()
     else:
         plt.show()
 
@@ -389,6 +393,7 @@ def plot_speedup_vs_sequential(
         plt.savefig(
             f"{base_path}/all_impl/benchmark_speedup_vs_seq_{op_mix}_{range_type}_{runtime}s.png"
         )
+        plt.close()
     else:
         plt.show()
 

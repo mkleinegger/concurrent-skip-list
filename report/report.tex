@@ -6,19 +6,57 @@
 \begin{document}
 
 \title{Project in Advanced Multiprocessor Programming}
-\author{Hacker Man - 12345678}
+\author{Natalia Tylek (12332258) \\Marlene Riegel (01620782) \\Maximilian Kleinegger (12041500)}
 \maketitle
 
 \section{Introduction}
 
-Here goes your report with plots as beautiful as \cref{fig:example_plot}.
+This report contains an analysis of benchmarks for different skiplist implementations. 
+The following sections include plots and their descriptions to compare them to results fround in the report we handed in.
+
+\section{Benchmark Plots}
 
 \begin{figure}[ht!]
   \centering
-  \includegraphics{../plots/avg_plot.pdf}
-  \caption{A sample plot showcasing the runtime of a distributed library under
-  increasing number of threads. Clearly, it does not scale very well.}
-  \label{fig:example_plot}
+  \includegraphics[width=0.8\textwidth]{../plots/all_impl/benchmark_throughput_101080_shared_1s.png}
+  \caption{Throughput for all implementations with 101080 operation mix in shared range for 1 second runtime.}
+  \label{fig:all_impl_throughput}
+\end{figure}
+
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=\textwidth]{../plots/all_impl/benchmark_all_implementations_Inserts_101080_shared_1s.png}
+  \caption{All implementations: Inserts operation with 101080 operation mix in shared range for 1 second runtime.}
+  \label{fig:all_impl_inserts}
+\end{figure}
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=\textwidth]{../plots/sucess_ratio/benchmark_success_ratio_Inserts_101080_shared_1s.png}
+  \caption{Success ratio for Inserts operation with 101080 operation mix in shared range for 1 second runtime.}
+  \label{fig:success_ratio_inserts}
+\end{figure}
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=0.8\textwidth]{../plots/benchmark_avg_ops_per_thread_global_lock_64threads.png}
+  \caption{Average operations per thread for Global Lock implementation with 64 threads.}
+  \label{fig:avg_ops_global_lock}
+\end{figure}
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=0.8\textwidth]{../plots/benchmark_avg_ops_per_thread_fine_lock_64threads.png}
+  \caption{Average operations per thread for Fine Lock implementation with 64 threads.}
+  \label{fig:avg_ops_fine_lock}
+\end{figure}
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=0.8\textwidth]{../plots/benchmark_avg_ops_per_thread_lock_free_64threads.png}
+  \caption{Average operations per thread for Lock Free implementation with 64 threads.}
+  \label{fig:avg_ops_lock_free}
 \end{figure}
 
 \end{document}
