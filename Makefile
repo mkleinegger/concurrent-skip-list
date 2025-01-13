@@ -75,7 +75,7 @@ bench-seq: all
 
 small-plot: 
 	@echo "Plotting small-bench results ..."
-	bash -c 'cd plots && pdflatex "\newcommand{\DATAPATH}{../data/$$(ls ../data/ | sort -r | head -n 1)}\input{avg_plot.tex}"'
+	python plot_benchmark_small.py
 	@echo "============================================"
 	@echo "Created plots/avgplot.pdf"
 
