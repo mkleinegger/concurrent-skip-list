@@ -1,2 +1,0 @@
-threads,prefill_count,time,total_inserts,successful_inserts,total_deletes,successful_deletes,total_contains,successful_contains,total_operations,basic_correctness_test_success,average_operations_per_thread
-1,0,1.0000001589457195,922277.6666666666,480206.6666666667,897987.3333333334,429633.3333333333,426334.6666666667,203920.66666666666,2246599.6666666665,True,[2246599.6666666665]

@@ -1,31 +1,65 @@
-Concurrent Library
--------------------------------
+# Concurrent Skiplist Project
 
-This example benchmarks a concurrent library (the one for books).
+## Overview
 
-  make small-bench
+This project implements and benchmarks different skiplist variants for concurrent multiprocessor systems. The results of the benchmarks are visualized through plots and compiled into a report.
 
-Runs a small benchmark that takes approximately 1 minute
-to finish. The results are stored time-stamped in data/.
+## Directory Structure
 
-  make small-plot
+```plaintext
+.
+├── Makefile               # Automates tasks like compiling, running benchmarks, and generating plots
+├── README.md              # Documentation for the project
+├── benchmark.py           # Main benchmarking script
+├── benchmark_small.py     # Benchmark script for smaller test cases
+├── benchmark_small_plots.py # Generates plots for small benchmarks
+├── data/*                 # Contains benchmark results in organized directories
+├── notebooks/             # Jupyter notebooks for visualizations
+│   └── plots.ipynb        # Interactive analysis and plot generation
+├── plots/*                # Generated plots from the benchmark scripts
+├── report/                # Contains the LaTeX source for the generated report
+│   └── report.tex         # Main LaTeX file
+├── requirements.txt       # Python dependencies for the project
+├── run_nebula.sh          # Script to run benchmarks on Nebula
+├── run_setup_python.sh    # Script to set up a python environment
+└── src/*                  # Source code for the skiplist and utilities
+```
 
-Produces two plots of the small benchmark data. It
-automatically chooses the latest timestamped run in data/.
+## How to Run the Project
 
-You can use run_nebula.sh to automatically copy your .zip
-archive to nebula and run some make target there. The syntax is
+### 1. Run Benchmarks
 
-  run_nebula.sh [project.zip] [Makefile target]
+To generate benchmark data, use the provided scripts included in the Makefile:
 
-The gathered data is then automatically scp'd back into your
-data/ folder.
+    make bench-seq
+    make bench-global
+    make bench-fine
+    make bench-lockfree
 
-Prerequisites
------------------------------
+Using those commands in combination with slurm on nebula should produce all results
 
-What is needed:
+### 2. Generate Report
 
-* C compiler
-* GNU Make
-* Python version at least 3.6
+If you want to generate a small sample using our small benchmark, you need to do the following:
+
+1. Set $USERNAME in `run_nebula.sh` to your username on the nebula system
+2. Run `bash run_nebula.sh project.zip small-bench`
+3. Run `make small-plot`
+4. Run `make report`
+
+This should allow to generate the necessary report. If your python environment does not have all necessary requierements, we either provide those within `./requirements.txt` to install into your environment or create and use a new environment with `run_setup_python.sh`. However for later approach you need to activate it first!
+
+### 3. Generate Plots
+To generate all Plots possibly found in the Report, simply use this created environment as a Jupyter kernel to run the notebook `./notebook/plots.ipynb`, which generates all plots.
+
+## Additional Information
+To reproduce the graphs we inkluded the gathered data from our runs under the `./old_data`, such that it can be looked at and used for reproduction purposes.
+
+---
+## Contributors
+
+- **Natalia Tylek (12332258)**
+- **Marlene Riegel (01620782)**
+- **Maximilian Kleinegger (12041500)**
+
+Feel free to reach out for further assistance or questions!

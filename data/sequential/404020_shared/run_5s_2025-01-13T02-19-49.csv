@@ -1,4 +1,0 @@
-threads,repetition,prefill_count,time,total_inserts,successful_inserts,total_deletes,successful_deletes,total_contains,successful_contains,total_operations,basic_correctness_test_success,operations_per_thread
-1,0,0,5.000000476837158,4522048,2257519,4411278,2207016,2095830,1048037,11029156,1,[11029156]
-1,1,0,5.0,4526804,2259856,4415779,2209265,2098009,1049162,11040592,1,[11040592]
-1,2,0,5.0,4526340,2259635,4415332,2209049,2097810,1049058,11039482,1,[11039482]
