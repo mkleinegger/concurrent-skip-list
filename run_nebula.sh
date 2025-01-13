@@ -3,7 +3,7 @@ TARGET=$2
 LOG_FILE=nebula.log
 LOG_SMALL_BENCH=nebula_small_bench.log
 DATA_DIR=data
-USERNAME="amp24w52" # Explicitly set your username for nebula
+USERNAME="amp24w28" # Explicitly set your username for nebula
 
 function copy_to_nebula {
     scp $ZIP_FILE "$USERNAME@nebula:~/test/$ZIP_FILE"
@@ -28,7 +28,7 @@ function run_on_nebula {
         cd uut &&
         make
 
-        /usr/local/slurm/bin/srun -t 10 -p q_student make $TARGET &
+        /usr/local/slurm/bin/srun -t 1 -p q_student make $TARGET &
 
         JOB_ID=\$(/usr/local/slurm/bin/squeue -u $USERNAME | awk 'NR==2 {print \$1}')
         while /usr/local/slurm/bin/squeue -u $USERNAME | grep -q \$JOB_ID; do
