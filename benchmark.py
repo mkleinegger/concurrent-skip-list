@@ -2,7 +2,7 @@ import argparse
 import os
 import ctypes
 
-from bench_utils import cBenchResult, Benchmark
+from src.utils.bench_utils import cBenchResult, Benchmark
 
 def main():
     """

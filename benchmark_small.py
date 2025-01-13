@@ -2,7 +2,7 @@ import argparse
 import os
 import ctypes
 
-from bench_utils import cBenchResult, Benchmark
+from src.utils.bench_utils import cBenchResult, Benchmark
 
 def benchmark_all():
     basedir = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +27,7 @@ def benchmark_all():
     repetitions = 1
     base_range = (0, 100000)
     selection_strategy = 0
+    prefill_count = 0
     seed = 42
     basic_testing = True
 
@@ -52,6 +53,7 @@ def benchmark_all():
                     basic_testing=basic_testing,
                     seed=seed,
                     repetitions_per_point=repetitions,
+                    prefill_count=prefill_count,
                     basedir=basedir,
                     name=lib_name,
                 )

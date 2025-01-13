@@ -1,4 +1,4 @@
-from plot_utils import load_and_prepare_data, plot_throughput
+from utils.plot_utils import load_and_prepare_data, plot_throughput
 import pandas as pd
 
 def main():

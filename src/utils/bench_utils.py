@@ -17,6 +17,7 @@ class cBenchResult(ctypes.Structure):
         ("successful_deletes", ctypes.c_longlong),
         ("total_contains", ctypes.c_longlong),
         ("successful_contains", ctypes.c_longlong),
+        ("basic_correctness_test_success", ctypes.c_int),
         ("operations_per_thread", ctypes.c_longlong * 64),
     ]
 
@@ -87,12 +88,11 @@ class Benchmark:
 
             with open(result_file, mode="w", newline="") as csvfile:
                 csv_writer = csv.writer(csvfile)
-                # Updated header to include 'operations_per_thread' and 'prefill_count'
                 csv_writer.writerow(
                     [
                         "threads",
                         "repetition",
-                        "prefill_count",  # New column
+                        "prefill_count", 
                         "time",
                         "total_inserts",
                         "successful_inserts",
@@ -101,7 +101,8 @@ class Benchmark:
                         "total_contains",
                         "successful_contains",
                         "total_operations",
-                        "operations_per_thread",  # New column
+                        "basic_correctness_test_success",
+                        "operations_per_thread", 
                     ]
                 )
 
@@ -115,6 +116,7 @@ class Benchmark:
                             ctypes.c_float(self.operations_mix[2]),
                             ctypes.c_int(self.base_range[0]),
                             ctypes.c_int(self.base_range[1]),
+                            ctypes.c_int(self.disjoint_range),
                             ctypes.c_int(self.selection_strategy),
                             ctypes.c_int(self.prefill_count),  # Use prefill_count here
                             ctypes.c_int(self.basic_testing),
@@ -137,7 +139,8 @@ class Benchmark:
                                 result.total_contains,
                                 result.successful_contains,
                                 result.total_operations,
-                                ops_per_thread,  # Serialized data
+                                result.basic_correctness_test_success,
+                                ops_per_thread
                             ]
                         )
                         csvfile.flush()
@@ -187,6 +190,7 @@ class Benchmark:
                             "total_contains": 0,
                             "successful_contains": 0,
                             "total_operations": 0,
+                            "basic_correctness_test_success": 0
                         }
                         # Initialize sums for operations_per_thread
                         ops_thread_map[threads] = [0] * threads  # Dynamic based on threads
@@ -200,6 +204,7 @@ class Benchmark:
                     data_map[threads]["total_contains"] += int(row["total_contains"])
                     data_map[threads]["successful_contains"] += int(row["successful_contains"])
                     data_map[threads]["total_operations"] += int(row["total_operations"])
+                    data_map[threads]["basic_correctness_test_success"] += int(row["basic_correctness_test_success"])
 
                     # Aggregate operations_per_thread
                     try:
@@ -226,7 +231,8 @@ class Benchmark:
                     "total_contains",
                     "successful_contains",
                     "total_operations",
-                    "average_operations_per_thread",  # New column
+                    "basic_correctness_test_success",  # Added comma
+                    "average_operations_per_thread",
                 ]
                 writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                 writer.writeheader()
@@ -244,6 +250,7 @@ class Benchmark:
                         "total_contains": data_map[threads]["total_contains"] / count,
                         "successful_contains": data_map[threads]["successful_contains"] / count,
                         "total_operations": data_map[threads]["total_operations"] / count,
+                        "basic_correctness_test_success": True if data_map[threads]["basic_correctness_test_success"] == count else False,
                         "average_operations_per_thread": json.dumps([
                             ops_thread_map[threads][idx] / count for idx in range(threads)
                         ]),
@@ -251,3 +258,4 @@ class Benchmark:
                     writer.writerow(avg_data)
 
             print(f"Averaged data written to: {avg_file}")
+

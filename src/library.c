@@ -23,6 +23,7 @@ struct bench_result
     long long successful_deletes;
     long long total_contains;
     long long successful_contains;
+    int basic_correctness_test_success;
     long long operations_per_thread[64];
 };
 
@@ -38,8 +39,10 @@ int basic_correctness_test(skiplist *list)
 
     if (valid == 0)
     {
+#ifdef VERBOSE
         printf("Basic correctness test: Inserts FAILED.\n");
-        return 1;
+#endif
+        return 0;
     }
 
     for (int key = 0; key < 100; key += 1)
@@ -51,8 +54,10 @@ int basic_correctness_test(skiplist *list)
 
     if (valid == 0)
     {
+#ifdef VERBOSE
         printf("Basic correctness test: Removes FAILED.\n");
-        return 1;
+#endif
+        return 0;
     }
 
     for (int key = 0; key < 100; key++)
@@ -63,12 +68,16 @@ int basic_correctness_test(skiplist *list)
     valid &= con(list, 999) == 0;
     if (valid == 0)
     {
+#ifdef VERBOSE
         printf("Basic correctness test: Contains FAILED.\n");
-        return 1;
+#endif
+        return 0;
     }
 
+#ifdef VERBOSE
     printf("Basic correctness test: SUCCESS.\n");
-    return 0;
+#endif
+    return 1;
 }
 
 long *generate_unique_keys(int start, int end, unsigned int seed)
@@ -225,7 +234,8 @@ struct bench_result run_benchmark(
                                     .total_deletes = t_rems,
                                     .successful_deletes = s_rems,
                                     .total_contains = t_cons,
-                                    .successful_contains = s_cons};
+                                    .successful_contains = s_cons,
+                                    .basic_correctness_test_success = 0};
 
     for (int i = 0; i < omp_get_max_threads(); i++)
     {
@@ -259,11 +269,12 @@ struct bench_result bench(
     }
     init(mylist);
 
+    int basic_testing_result = 0;
 #pragma omp single
     {
         if (basic_testing == 1)
         {
-            basic_correctness_test(mylist);
+            basic_testing_result = basic_correctness_test(mylist);
         }
     }
 
@@ -300,6 +311,7 @@ struct bench_result bench(
         printf("Number of threads: %d\n", omp_get_max_threads());
 #endif
         result = run_benchmark(mylist, runtime_in_sec, i, d, c, start_range, end_range, selection_strategy, disjoint_range, seed);
+        result.basic_correctness_test_success = basic_testing_result;
     }
 
     clean(mylist);
