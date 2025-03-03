@@ -54,13 +54,4 @@ This should allow to generate the necessary report. If your python environment d
 To generate all Plots possibly found in the Report, simply use this created environment as a Jupyter kernel to run the notebook `./notebook/plots.ipynb`, which generates all plots.
 
 ## Additional Information
-To reproduce the graphs we inkluded the gathered data from our runs under the `./old_data`, such that it can be looked at and used for reproduction purposes.
-
----
-## Contributors
-
-- **Natalia Tylek (12332258)**
-- **Marlene Riegel (01620782)**
-- **Maximilian Kleinegger (12041500)**
-
-Feel free to reach out for further assistance or questions!
+To reproduce the graphs we inkluded the gathered data from our runs under the `./data`, such that it can be looked at and used for reproduction purposes.
