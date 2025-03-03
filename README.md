@@ -1,5 +1,7 @@
 # Concurrent Skiplist Project
 
+Report can be found under https://mkleinegger.github.io/concurrent-skip-list/docs/report.pdf
+
 ## Overview
 
 This project implements and benchmarks different skiplist variants for concurrent multiprocessor systems. The results of the benchmarks are visualized through plots and compiled into a report.
