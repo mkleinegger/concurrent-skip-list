@@ -1,6 +1,6 @@
 # Concurrent Skiplist Project
 
-Report can be found under https://mkleinegger.github.io/concurrent-skip-list/docs/report.pdf
+Report can be found under https://mkleinegger.github.io/concurrent-skip-list/report.pdf
 
 ## Overview
 
